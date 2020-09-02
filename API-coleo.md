@@ -12,6 +12,8 @@ name | texte | Nom de la cellule | |
 **cell_code** | texte | Code de la cellule | |
 **geom** | geometry | Localisation de la cellule | |
 
+***
+
 ## Sites
 
 **Nom de la table** : sites
@@ -28,6 +30,7 @@ off_station_code_id | texte |  | |
 **geom** | geometry | Localisation du site | |
 notes | texte | Commentaires | |
 
+***
 
 ## Campagnes
 
@@ -40,8 +43,106 @@ notes | texte | Commentaires | |
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
 **site_id** | texte | Identifiant unique du site attaché à la campagne d'échantillonnage | |
-**type** | choix | | 'végétation', 'végétation_transect', 'sol', 'acoustique', 'phénologie', 'mammifères', 'papilionidés', 'odonates', 'insectes_sol', 'ADNe','zooplancton', 'température_eau', 'température_sol', 'marais_profondeur_température' |
+**type** | choix | Le type campagne réalisé | 'végétation', 'végétation_transect', 'sol', 'acoustique', 'phénologie', 'mammifères', 'papilionidés', 'odonates', 'insectes_sol', 'ADNe','zooplancton', 'température_eau', 'température_sol', 'marais_profondeur_température' |
 technicians | ARRAY(texte) | Noms des technicien(ne)s | |
 opened_at | date | Date d'ouverture de la campagne d'échantillonnage | |
 closed_at | date | Date de fermeture de la campagne d'échantillonnage | |
 notes | texte | Commentaires | |
+
+***
+
+## Efforts
+
+**Nom de la table** : efforts
+
+**Point d'accès** : /api/v1/efforts
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**campaing_id** | nombre entier | Numéro d'identification de la campagne | |
+stratum | choix | Strate de végétation concernée par l'effort d'échantillonage | 'arbres', 'arbustes/herbacées', 'bryophytes' |
+time_start | date et heure | Date et heure de début de l'inventaire | |
+time_finish | date et heure | Date et heure de fin de l'inventaire | |
+samp_surf | nombre décimal| Taille de la surface d'échantillonage | |
+samp_surf_unit | choix | Unité de mesure utilisé pour la surface d'échantillonnage | 'cm2', 'm2', 'km2' |
+notes | texte | Commentaires | |
+
+***
+
+## Environnements
+
+**Nom de la table** : environments
+
+**Point d'accès** : /api/v1/environments
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**campaing_id** | nombre entier | Numéro d'identification de la campagne | |
+wind | choix | Vent en km/h | 'calme (moins de 1 km/h)', 'très légère brise (1 à 5 km/h)', 'légère brise (6 à 11 km/h)', 'petite brise (12 à 19 km/h)', 'jolie brise (20 à 28 km/h)' |
+sky | choix | Allure du ciel | 'dégagé (0 à 10 %)', 'nuageux (50 à 90 %)', 'orageux', 'partiellement nuageux (10 à 50 %)', 'pluvieux' |
+temp_c | nombre décimal | Date et heure de fin de l'inventaire | |
+samp_surf | nombre décimal| Température en celsius | |
+samp_surf_unit | choix | Unité de mesure utilisé pour la surface d'échantillonnage | 'cm2', 'm2', 'km2' |
+notes | texte | Commentaires | |
+
+
+***
+
+## Appareils
+
+**Nom de la table** : devices
+
+**Point d'accès** : /api/v1/devices
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**campaing_id** | nombre entier | Numéro d'identification de la campagne | |
+sd_card_codes | ARRAY(texte) | Numéro d'identification des cartes SD utilisées |  |
+cam_code | ARRAY(texte) | Numéro d'identification de la caméra utilisée |  |
+cam_h_cm | nombre décimal | Hauteur de la camera en centimètres | |
+mic_logger_code | texte| Numéro d'identification du enregistreur utilisé | |
+mic_acc_code | texte | Numéro d'identification du microphone accoustique utilisé | |
+mic_h_cm_acc | nombre décimal | Hauteur du microphone ultrason utilisé en centimètres | |
+mic_ultra_code | texte | Hauteur du microphone ultrason utilisé en centimètres | |
+mic_orientation | choix | Orientation du dispositif | 'n', 's', 'e', 'o', 'ne', 'no', 'se', 'so' | 
+
+***
+
+## Appâts
+
+**Nom de la table** : lures
+
+**Point d'accès** : /api/v1/lures
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+lure | nombre entier | Numéro d'identification de la campagne | |
+installed_at | date | Date d'installation de l'appât/leurre | |
+
+***
+
+## Repères
+
+**Nom de la table** : landmarks
+
+**Point d'accès** : /api/v1/landmarks
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**campaing_id** | nombre entier | Numéro d'identification de la campagne | |
+tree_code | texte | Identifiant unique de l'arbre repère | |
+taxa_name | texte | Espèce de l'arbre repère | |
+dbh | nombre entier | DHP de l'arbre repère | |
+dbh_unit | choix | Unité pour le DHP | 'mm','cm','m' |
+axis | choix | L'axe du transect pour la végétation | 'n','se','so' |
+azimut | nombre entier | Azimut du dispositif/appât/borne depuis le repère (arbre ou borne), entre 0 et 360 | |
+distance | nombre décimal | Distance du dispositif/appât/borne depuis le repère (arbre ou borne) | | 
+distance_unit | choix | Distance du dispositif/appât/borne depuis le repère (arbre ou borne) | 'mm','cm','m' |
+geom | geometry(POINT) | Position du repère |  |
+type | choix |  Type de repère | 'gps', 'arbre', 'gps+arbre', 'borne_axe', 'thermographe' | 
+thermograph_type | choix | Type de thermographe | 'eau', 'eau_extérieur', 'sol', 'sol_extérieur', 'puit_marais' |
+notes | texte | Commentaires | |
+
+***
+
+
