@@ -1,5 +1,13 @@
 # Structure de l'API et BD Coléo
 
+## Champs communs à la plupart des tables
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+id | nombre entier | Identifiant unique | |
+created_at | date-heure | Date et heure de création | |
+updated_at | date-heure | Date et heure de mise à jour | |
+
 ## Cellules
 
 **Nom de la table** : cells
@@ -257,6 +265,25 @@ unit | texte | Unité de la variable attribuée | |
 
 ***
 
+## Table de référence des noms d'espèces
+
+**Nom de la table** : ref_species
+
+**Point d'accès** : /api/v1/ref_species
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**name** | texte | Nom scientifique du taxa | |
+vernacular_fr | texte | Nom vernaculaire français de l'espèce | |
+rank | choix | Rang taxonomique | 'sous-embranchement', 'embranchement', 'sous-classe', 'classe', 'sous-ordre', 'ordre', 'super-famille', 'famille', 'genre', 'espèce','sous-espèce','variété', 'complexe'|
+category | choix | Catégorie d'organisme vivant | 'poissons','plantes','oiseaux','amphibiens','arthropodes','mammifères','reptiles','autres','mollusques' | 
+tsn | nombre entier | Identifiant ITS (TSN) | | 
+vascan_id | nombre entier | Identifiant Vascand pour les plantes | | 
+bryoquel_id | nombre entier | Identifiant Bryoquel pour les bryphytes | |
+
+***
+
+
 ## Observations de la décomposition du sol (sacs de thé)
 
 **Nom de la table** : obs_soil_decomposition
@@ -284,7 +311,7 @@ human_impact | nombre entier |  Impacts anthropique 1-5 | 1=Aucun impact à 5=Be
 
 **Nom de la table** : media
 
-**Point d'accès** : /api/v1/attributes
+**Point d'accès** : /api/v1/media
 
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
