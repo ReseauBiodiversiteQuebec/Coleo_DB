@@ -321,7 +321,7 @@ Champs | Type | Description | Options
 **recorder** | choix | Type d'enregistreur | 'ultrasound', 'audible' |
 **og_format** | texte | Original format (jpeg, png, etc) | |
 **og_extention** | texte | Original extension (.jpg, .png, etc.) | |
-**uuid* | texte | UUID, Identifiant unique généré par Coléo | | 
+**uuid** | texte | UUID, Identifiant unique généré par Coléo | | 
 **name** | texte | Nom du fichier original | | 
 
 ***
