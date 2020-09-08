@@ -1,6 +1,6 @@
 # Structure de l'API et BD Coléo
 
-## Cells
+## Cellules
 
 **Nom de la table** : cells
 
@@ -121,11 +121,29 @@ installed_at | date | Date d'installation de l'appât/leurre | |
 
 ***
 
+## Pièges
+
+**Nom de la table** : traps
+
+**Point d'accès** : /api/v1/traps
+
+**Inclus dans le résultat** : landmarks, samples.
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+trap_code | texte | Code du piège | |
+campaign_id | texte | Code d'identification de la campagne | |
+notes | texte | Commentaires | |
+
+***
+
 ## Repères
 
 **Nom de la table** : landmarks
 
 **Point d'accès** : /api/v1/landmarks
+
+**Inclus dans le résultat** : thermographs
 
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
@@ -141,6 +159,38 @@ distance_unit | choix | Distance du dispositif/appât/borne depuis le repère (a
 geom | geometry(POINT) | Position du repère |  |
 type | choix |  Type de repère | 'gps', 'arbre', 'gps+arbre', 'borne_axe', 'thermographe' | 
 thermograph_type | choix | Type de thermographe | 'eau', 'eau_extérieur', 'sol', 'sol_extérieur', 'puit_marais' |
+notes | texte | Commentaires | |
+
+***
+## Échantillons
+
+**Nom de la table** : samples
+
+**Point d'accès** : /api/v1/samples
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**sample_code** | texte | Numéro de l'échantillon | |
+date_samp | date | Date de collecte de l'échantillon | |
+**trap_id** | nombre entier | Numéro d'identification unique du piège | |
+notes | texte | Commentaires | |
+
+***
+
+## Thermographs
+
+**Nom de la table** : thermographs
+
+**Point d'accès** : /api/v1/thermographs
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**landmark_id** | nombre entier| Numéro du repère | |
+**thermograph_no** | texte | Numéro/code du thermographe | |
+depth | nombre décimal | Profondeur dans l'eau ou dans le sol | |
+height | nombre décimal | Hauteur pour les thermographes extérieurs | |
+is_on_bag | booléen 1/0 | Est-ce le dernier thermographe sur le sac de la chaîne? | |
+shading | nombre entier| Ombrage de 1 (aucun ombrage) à 5 (complètement ombragé) | |
 notes | texte | Commentaires | |
 
 ***
