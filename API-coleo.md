@@ -2,9 +2,11 @@
 
 ## Champs communs à la plupart des tables
 
+Les champs en gras sont obligatoires
+
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
-id | nombre entier | Identifiant unique | |
+**id** | nombre entier | Identifiant unique | |
 created_at | date-heure | Date et heure de création | |
 updated_at | date-heure | Date et heure de mise à jour | |
 
