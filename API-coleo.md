@@ -195,4 +195,32 @@ notes | texte | Commentaires | |
 
 ***
 
+## Observations
+
+**Nom de la table** : observations
+
+**Point d'accès** : /api/v1/observations
+
+**Inclus dans le résultat**: media, obs_soil, obs_species, obs_soil_decomposition
+
+Cette table est la table principale qui contient les informations communes à toutes les observations. Dépendamment du type de campagne, les informations complémentaires sont dans les tables obs_*
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**date_obs** | date | Date d'observation à l'intérieur de la campagne d'inventaire | |
+time_obs | heure HH:mm:ss| Heure de l'observation à l'intérieur de la campagne d'inventaire | |
+stratum | choix | Strate de végétation inventoriée (spécifique aux campagnes de type végétation) | 'arborescente', 'arbustive', 'herbacées', 'bryophytes' |
+axis | choix | L\'axe du transect pour la végétation | 'n','se','so' |
+distance | nombre décimal| La distance le long du transect pour la végétation | | 
+distance_unit | choix | Unité de mesure utilisé pour la distance le long du transect | |
+depth | nombre décimal | Profondeur pour les observations de zooplancton | |
+sample_id | nombre entier | numéro de l'échantillon | |
+**is_valid** | booléen 1/0 | L'observation est-elle valide?| par défaut: 1 |
+**campaing_id** | nombre entier | Numéro d'identification de la campagne | |
+**campaing_info** | champs virtuel | Informations sur la campagne | |
+thermograph_id | nombre entier | Numéro du thermographe | |
+notes | texte | Commentaires | |
+
+***
+
 
