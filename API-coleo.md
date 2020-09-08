@@ -224,3 +224,59 @@ notes | texte | Commentaires | |
 ***
 
 
+## Observations d'espèces
+
+**Nom de la table** : obs_species
+
+**Point d'accès** : /api/v1/obs_species
+
+**Inclus dans le résultat**: attributes, ref_species
+
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**taxa_name** | texte | Nom complet de l'espèce observée | |
+**variable** | texte | Référence vers la table t'attributs | |
+value | nombre décimal | Valeur de l'attribut | | 
+**observation_id** | nombre entier | Identifiant unique de la table d'observations| 
+
+***
+
+
+## Attributs
+
+**Nom de la table** : attributes
+
+**Point d'accès** : /api/v1/attributes
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**variable** | texte | Nom de la variable attribuée | |
+**description** | texte | Description de la variable attribuée | |
+unit | texte | Unité de la variable attribuée | |
+
+***
+
+## Observations de décomposition du sol (sacs de thé)
+
+**Nom de la table** : obs_soil_decomposition
+
+**Point d'accès** : /api/v1/obs_soil_decomposition
+
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**observation_id** | nombre entier | Numéro de l'observation dans la table observation | |
+**bag_no** | texte | Code du sachet de thé | |
+type | choix | Type de sachet de thé | 'thé vert', 'rooibos' | 
+**observation_id** | nombre entier | Identifiant unique de la table d'observations| |
+geom | geometry(POINT) | localisation du sachet | |
+date_end | date | Date de la collecte du sachet de thé. La date de l'observation est la date de la mise en place. ||
+**start_weight** | nombre décimal | Poids du sachet au départ||
+end_weight_with_bag | nombre décimal | Poids avec le sachet à la fin||
+end_weight_tea | nombre décimal | Poids sans le sachet à la fin ||
+shading | nombre entier | Ombrage 1-5 | 1=Aucun ombrage à  5=Complètement ombragé| 
+human_impact | nombre entier |  Impacts anthropique 1-5 | 1=Aucun impact à 5=Beaucoup d'impacts| 
+
+***
+
