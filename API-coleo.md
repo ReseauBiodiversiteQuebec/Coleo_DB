@@ -257,7 +257,7 @@ unit | texte | Unité de la variable attribuée | |
 
 ***
 
-## Observations de décomposition du sol (sacs de thé)
+## Observations de la décomposition du sol (sacs de thé)
 
 **Nom de la table** : obs_soil_decomposition
 
@@ -280,3 +280,32 @@ human_impact | nombre entier |  Impacts anthropique 1-5 | 1=Aucun impact à 5=Be
 
 ***
 
+## Media
+
+**Nom de la table** : media
+
+**Point d'accès** : /api/v1/attributes
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**type** | choix | Type de média | 'image', 'audio', 'video' | |
+**recorder** | choix | Type d'enregistreur | 'ultrasound', 'audible' |
+**og_format** | texte | Original format (jpeg, png, etc) | |
+**og_extention** | texte | Original extension (.jpg, .png, etc.) | |
+**uuid* | texte | UUID, Identifiant unique généré par Coléo | | 
+**name** | texte | Nom du fichier original | | 
+
+***
+
+## Table de correspondance - Observation-media
+
+**Nom de la table** : obs_media
+
+**Point d'accès** : /api/v1/obs_media
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**obs_id** | Nombre entier | Identifiant de l'observation | |
+**media_id** | Nombre entier | Identifiant du média |  |
+
+***
