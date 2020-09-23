@@ -16,6 +16,8 @@ updated_at | date-heure | Date et heure de mise à jour | |
 
 **Point d'accès** : /api/v1/cells
 
+**Inclus dans les résultats** : sites
+
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
 name | texte | Nom de la cellule | |
@@ -29,6 +31,8 @@ name | texte | Nom de la cellule | |
 **Nom de la table** : sites
 
 **Point d'accès** : /api/v1/sites
+
+**Inclus dans les résultats** : campaigns, cells
 
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
@@ -187,7 +191,9 @@ notes | texte | Commentaires | |
 
 ***
 
-## Thermographs
+## Thermographes
+
+Cette table est utilisée pour faire la liste de thermographes pour la température de l'eau et du sol, ainsi que les appareils de profondeur d'eau et température utilisée dans les marais. Cette table est liée et à la table des repères et à la table des observations, puisqu'il peut y avoir plusieurs thermographes à un même endroit, et des milliers d'observations pour un même thermographe. 
 
 **Nom de la table** : thermographs
 
@@ -298,7 +304,6 @@ Champs | Type | Description | Options
 **observation_id** | nombre entier | Numéro de l'observation dans la table observation | |
 **bag_no** | texte | Code du sachet de thé | |
 type | choix | Type de sachet de thé | 'thé vert', 'rooibos' | 
-**observation_id** | nombre entier | Identifiant unique de la table d'observations| |
 geom | geometry(POINT) | localisation du sachet | |
 date_end | date | Date de la collecte du sachet de thé. La date de l'observation est la date de la mise en place. ||
 **start_weight** | nombre décimal | Poids du sachet au départ||
@@ -306,6 +311,59 @@ end_weight_with_bag | nombre décimal | Poids avec le sachet à la fin||
 end_weight_tea | nombre décimal | Poids sans le sachet à la fin ||
 shading | nombre entier | Ombrage 1-5 | 1=Aucun ombrage à  5=Complètement ombragé| 
 human_impact | nombre entier |  Impacts anthropique 1-5 | 1=Aucun impact à 5=Beaucoup d'impacts| 
+
+***
+
+## Observations de profil du sol
+
+**Nom de la table** : obs_soil
+
+**Point d'accès** : /api/v1/obs_soil
+
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**observation_id** | nombre entier | Numéro de l'observation dans la table observation | |
+geom | geometry(POINT) | localisation du sachet | |
+depth_tot | nombre décimal | Profondeur du pédon | | 
+depth_hummus | nombre décimal | Profondeur de la couche d'humus | | 
+depth_f | nombre décimal | Profondeur de la couche organique F | |
+depth_m | nombre décimal | Profondeur de la couche organique M | |
+depth_h | nombre décimal | Profondeur de la couche organique H | |
+depth_a | nombre décimal | Profondeur de la couche minérale A | |
+texture_a | choix | Texture de la couche A | "Argile","Argile limoneuse","Argile lourd","Argile sableuse","Limon","Loam","Loam argileux","Loam limoneux","Loam limono-argileux",        "Loam sableux","Loam sableux très grossier","Loam sableux grossier","Loam sableux moyen","Loam sableux fin","Loam sableux très fin","Loam sablo-argileux","Sable","Sable très grossier","Sable grossier","Sable moyen","Sable fin","Sable très fin","Sable très grossier loameux","Sable moyen loameux","Sable fin loameux","Sable très fin loameux","Sable loameux","Autres" |
+depth_b | nombre décimal | Profondeur de la couche minérale b | |
+texture_b | choix | Texture de la couche B | Voir A|
+depth_c | nombre décimal | Profondeur de la couche minérale c | |
+texture_c | choix | Texture de la couche C | Voir A|
+depth_d | nombre décimal | Profondeur de la couche minérale d | |
+texture_d | choix | Texture de la couche D | Voir A|
+mottling | Booléen 0/1 | Présence de moucheture | | 
+mottling_depth | nombre décimal | Profondeur de moucheture, si présente | | 
+drainage_class | nombre entier | Classe de drainage | 0,1,2,3,4,5 ou 6| 
+water_table_depth | nombre décimal | Profondeur de la nappe phréatique | |
+reached_one_meter | Booléen 0/1 | Est-ce que la profondeur de 1 m a été atteinte? | |
+depth_reached | nombre décimal | Profondeur atteinte (si moins de 1 m) | |
+notes | Texte | Notes | |
+
+***
+
+
+## Observations de température et de profondeur d'eau, du sol et en marais. 
+
+Note: la profondeur ici n'est pas la profondeur à laquelle les thermographes sont installés, mais la profondeur mesurée par les appareils dans les puits en marais. 
+
+**Nom de la table** : obs_temperature_depth
+
+**Point d'accès** : /api/v1/obs_temperature_depth
+
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**observation_id** | nombre entier | Numéro de l'observation dans la table observation | |
+temperature | nombre décimal | Température (C) | |
+water_depth | nombre décimal | Profondeur de l'eau en marais | | 
+
 
 ***
 
