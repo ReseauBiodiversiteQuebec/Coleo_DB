@@ -232,8 +232,8 @@ distance_unit | choix | Unité de mesure utilisé pour la distance le long du tr
 depth | nombre décimal | Profondeur pour les observations de zooplancton | |
 sample_id | nombre entier | numéro de l'échantillon | |
 **is_valid** | booléen 1/0 | L'observation est-elle valide?| par défaut: 1 |
-**campaing_id** | nombre entier | Numéro d'identification de la campagne | |
-**campaing_info** | champs virtuel | Informations sur la campagne | |
+**campaign_id** | nombre entier | Numéro d'identification de la campagne | |
+campaign_info | champs virtuel | Informations sur la campagne | |
 thermograph_id | nombre entier | Numéro du thermographe | |
 notes | texte | Commentaires | |
 
@@ -252,7 +252,7 @@ notes | texte | Commentaires | |
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
 **taxa_name** | texte | Nom complet de l'espèce observée | |
-**variable** | texte | Référence vers la table t'attributs | |
+**variable** | texte | Référence vers la table d'attributs | |
 value | nombre décimal | Valeur de l'attribut | | 
 **observation_id** | nombre entier | Identifiant unique de la table d'observations| 
 
@@ -277,7 +277,7 @@ unit | texte | Unité de la variable attribuée | |
 
 **Nom de la table** : ref_species
 
-**Point d'accès** : /api/v1/ref_species
+**Point d'accès** : /api/v1/taxa
 
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
