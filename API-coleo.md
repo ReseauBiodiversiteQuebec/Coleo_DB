@@ -87,7 +87,7 @@ notes | texte | Commentaires | |
 
 **Nom de la table** : environments
 
-**Point d'accès** : /api/v1/environments
+**Point d'accès** : /api/v1/environment
 
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
