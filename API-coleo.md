@@ -92,8 +92,8 @@ notes | texte | Commentaires | |
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
 **campaing_id** | nombre entier | Numéro d'identification de la campagne | |
-wind | choix | Vent en km/h | 'calme (moins de 1 km/h)', 'très légère brise (1 à 5 km/h)', 'légère brise (6 à 11 km/h)', 'petite brise (12 à 19 km/h)', 'jolie brise (20 à 28 km/h)' |
-sky | choix | Allure du ciel | 'dégagé (0 à 10 %)', 'nuageux (50 à 90 %)', 'orageux', 'partiellement nuageux (10 à 50 %)', 'pluvieux' |
+wind | choix 1-5 | Vent en km/h | '1'='calme (moins de 1 km/h)', '2'='très légère brise (1 à 5 km/h)', '3'='légère brise (6 à 11 km/h)', '4'='petite brise (12 à 19 km/h)', '5'=jolie brise (20 à 28 km/h)' |
+sky | choix 1-5| Allure du ciel | '1'='dégagé (0 à 10 %)', '2'='partiellement nuageux (10 à 50 %)', '3'='nuageux (50 à 90 %)', '4'='pluvieux', '5'='orageux'|
 temp_c | nombre décimal | Date et heure de fin de l'inventaire | |
 samp_surf | nombre décimal| Température en celsius | |
 samp_surf_unit | choix | Unité de mesure utilisé pour la surface d'échantillonnage | 'cm2', 'm2', 'km2' |
