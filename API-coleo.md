@@ -314,6 +314,26 @@ human_impact | nombre entier |  Impacts anthropique 1-5 | 1=Aucun impact à 5=Be
 
 ***
 
+## Observations d'ADN Environnemental
+
+Note: Le format des observations d'ADN environnemental est différent des autres observations puisqu'il inclut le numéro du repère, afin de permettre le traitement de multiples repères sur un même site. 
+
+**Nom de la table** : obs_edna
+
+**Point d'accès** : /api/v1/obs_edna
+
+
+Champs | Type | Description | Options
+------------ | ------------- | ------------- | -------------
+**observation_id** | nombre entier | Numéro de l'observation dans la table observation | |
+**landmark_id** | nombre entier | Numéro du repère | |
+**taxa_name** | texte | Nom de l'espèce observée | |
+sequence_count | nombre réel |  Nombre de séquences  | | 
+type_edna | choix | Catégorie d'observation ADNe | "confirmé", "probable", "improbable", "non-poisson"| |
+notes | Texte | Notes | |
+
+***
+
 ## Observations de profil du sol
 
 **Nom de la table** : obs_soil
