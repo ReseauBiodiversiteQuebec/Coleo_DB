@@ -39,6 +39,7 @@ Champs | Type | Description | Options
 **cell_id** | nombre entier | Identifiant de la cellule | |
 off_station_code_id | texte |  | |
 **site_code** | texte | Identifiant unique du site | |
+**site_name** | texte | Nom du site. Par exemple, le nom du lac.| |
 **type** | choix | Type d'inventaire réalisé sur le site | 'lac', 'rivière', 'forestier', 'marais', 'marais côtier', 'toundrique', 'tourbière' |
 **opened_at** | date | Date de l'ouverture du site | |
 **geom** | geometry | Localisation du site | |
@@ -283,7 +284,8 @@ Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
 **name** | texte | Nom scientifique du taxa | |
 vernacular_fr | texte | Nom vernaculaire français de l'espèce | |
-rank | choix | Rang taxonomique | 'sous-embranchement', 'embranchement', 'sous-classe', 'classe', 'sous-ordre', 'ordre', 'super-famille', 'famille', 'genre', 'espèce','sous-espèce','variété', 'complexe'|
+vernacular_en | texte | Nom vernaculaire anglais de l'espèce | |
+rank | choix | Rang taxonomique | 'sous-embranchement', 'embranchement', 'sous-classe', 'classe', 'sous-ordre', 'ordre', 'super-famille', 'famille', 'genre', 'espèce','sous-espèce','variété', 'complexe','genre_hybride', 'espèce_hybride','variété_hybride','sous-espèce_hybride'|
 category | choix | Catégorie d'organisme vivant | 'poissons','plantes','oiseaux','amphibiens','arthropodes','mammifères','reptiles','autres','mollusques' | 
 tsn | nombre entier | Identifiant ITS (TSN) | | 
 vascan_id | nombre entier | Identifiant Vascand pour les plantes | | 
@@ -316,7 +318,7 @@ human_impact | nombre entier |  Impacts anthropique 1-5 | 1=Aucun impact à 5=Be
 
 ## Observations d'ADN Environnemental
 
-Note: Le format des observations d'ADN environnemental est différent des autres observations puisqu'il inclut le numéro du repère, afin de permettre le traitement de multiples repères sur un même site. 
+Note: Le format des observations d'ADN environnemental est différent des autres observations puisqu'il inclut le numéro du repère, afin de permettre le traitement de multiples repères sur un même lac. 
 
 **Nom de la table** : obs_edna
 
