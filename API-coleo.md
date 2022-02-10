@@ -235,6 +235,7 @@ sample_id | nombre entier | numéro de l'échantillon | |
 **campaign_id** | nombre entier | Numéro d'identification de la campagne | |
 campaign_info | champs virtuel | Informations sur la campagne | |
 thermograph_id | nombre entier | Numéro du thermographe | |
+extra | json | Autres valeurs pour des colonnes additionnelles en format json  | {"longueur_poisson": 12, "phospore": 40} |
 notes | texte | Commentaires | |
 
 ***
