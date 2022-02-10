@@ -420,10 +420,10 @@ Champs | Type | Description | Options
 ***
 
 
-## Points d'accès particuliers
+# Points d'accès particuliers
 
 
-# Table - colonnes 
+## Table - colonnes 
 
 **Point d'accès** : /api/v1/table_columns
 
@@ -438,10 +438,7 @@ Champs | Type | Description | Options
 
 
 
-## Points d'accès particuliers
-
-
-# Table - colonnes 
+## Options des colonnes 
 
 **Point d'accès** : /api/v1/enum_options
 
