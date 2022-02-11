@@ -96,7 +96,7 @@ Champs | Type | Description | Options
 wind | choix 1-5 | Vent en km/h | '1'='calme (moins de 1 km/h)', '2'='très légère brise (1 à 5 km/h)', '3'='légère brise (6 à 11 km/h)', '4'='petite brise (12 à 19 km/h)', '5'=jolie brise (20 à 28 km/h)' |
 sky | choix 1-5| Allure du ciel | '1'='dégagé (0 à 10 %)', '2'='partiellement nuageux (10 à 50 %)', '3'='nuageux (50 à 90 %)', '4'='pluvieux', '5'='orageux'|
 temp_c | nombre décimal | Température en celcius | |
-extra | json | Autres valeurs pour des colonnes additionnelles en format json  | {"largeur_riviere": 12, "profondeur_eau": 40} |
+extra | json | Autres valeurs pour des colonnes additionnelles en format json  | {"largeur_riviere": { type: 'double', description: 'Largeur de la rivière', units: 'm', value: 7.12}} |
 notes | texte | Commentaires | |
 
 
@@ -235,7 +235,7 @@ sample_id | nombre entier | numéro de l'échantillon | |
 **campaign_id** | nombre entier | Numéro d'identification de la campagne | |
 campaign_info | champs virtuel | Informations sur la campagne | |
 thermograph_id | nombre entier | Numéro du thermographe | |
-extra | json | Autres valeurs pour des colonnes additionnelles en format json  | {"longueur_poisson": 12, "phospore": 40} |
+extra | json | Autres valeurs pour des colonnes additionnelles en format json  | {"longueur_poisson": { type: 'double', description: 'Longueur du poisson', units: 'cm', value: 34.2}} |
 notes | texte | Commentaires | |
 
 ***
