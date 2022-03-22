@@ -173,6 +173,9 @@ distance_unit | choix | Distance du dispositif/appât/borne depuis le repère (a
 geom | geometry(POINT) | Position du repère |  |
 type | choix |  Type de repère | 'gps', 'arbre', 'gps+arbre', 'borne_axe', 'thermographe' | 
 thermograph_type | choix | Type de thermographe | 'eau', 'eau_extérieur', 'sol', 'sol_extérieur', 'puit_marais' |
+trap_id | nombre entier | Identifiant du piège | |
+lure_id | nombre entier | Identifiant de l'appât | |
+device_id | nombre entier | Identifiant de l'appareil | |
 notes | texte | Commentaires | |
 
 ***
