@@ -80,6 +80,7 @@ time_start | date et heure | Date et heure de début de l'inventaire | |
 time_finish | date et heure | Date et heure de fin de l'inventaire | |
 samp_surf | nombre décimal| Taille de la surface d'échantillonage | |
 samp_surf_unit | choix | Unité de mesure utilisé pour la surface d'échantillonnage | 'cm2', 'm2', 'km2' |
+recording_minutes | nombre entier | Nombre de minutes d'enregistrement | |
 notes | texte | Commentaires | |
 
 ***
