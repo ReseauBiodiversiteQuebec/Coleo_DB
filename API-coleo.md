@@ -81,6 +81,7 @@ time_finish | date et heure | Date et heure de fin de l'inventaire | |
 samp_surf | nombre décimal| Taille de la surface d'échantillonage | |
 samp_surf_unit | choix | Unité de mesure utilisé pour la surface d'échantillonnage | 'cm2', 'm2', 'km2' |
 recording_minutes | nombre entier | Nombre de minutes d'enregistrement | |
+fraction_benthos | nombre décimal | Fraction de l'échantillon de benthos analysé | 0-1 |
 notes | texte | Commentaires | |
 
 ***
