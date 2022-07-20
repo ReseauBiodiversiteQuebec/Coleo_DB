@@ -132,7 +132,8 @@ mic_orientation | choix | Orientation du dispositif | 'n', 's', 'e', 'o', 'ne', 
 
 Champs | Type | Description | Options
 ------------ | ------------- | ------------- | -------------
-lure | nombre entier | Numéro d'identification de la campagne | |
+lure | nombre entier | Type de leurre ou appât utilisé pour le dispositif | |
+campaign_id | nombre entier | Numéro d'identification de la campagne | |
 installed_at | date | Date d'installation de l'appât/leurre | |
 
 ***
@@ -408,6 +409,7 @@ Champs | Type | Description | Options
 **og_extention** | texte | Original extension (.jpg, .png, etc.) | |
 **uuid** | texte | UUID, Identifiant unique généré par Coléo | | 
 **name** | texte | Nom du fichier original | | 
+**campaign_id** | nombre enter | Numéro d'identification de la campagne | |
 
 ***
 
