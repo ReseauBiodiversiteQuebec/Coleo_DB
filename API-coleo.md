@@ -337,6 +337,7 @@ Champs | Type | Description | Options
 **landmark_id** | nombre entier | Numéro du repère | |
 **taxa_name** | texte | Nom de l'espèce observée | |
 sequence_count | nombre réel |  Nombre de séquences  | | 
+sequence_count_corrected | nombre réel | Nombre de séquences corrigé | |
 type_edna | choix | Catégorie d'observation ADNe | "confirmé", "probable", "improbable", "non-poisson"| |
 notes | Texte | Notes | |
 
@@ -409,7 +410,8 @@ Champs | Type | Description | Options
 **og_extention** | texte | Original extension (.jpg, .png, etc.) | |
 **uuid** | texte | UUID, Identifiant unique généré par Coléo | | 
 **name** | texte | Nom du fichier original | | 
-**campaign_id** | nombre enter | Numéro d'identification de la campagne | |
+**csite_id** | nombre entier | Numéro d'identification du site | |
+**campaign_id** | nombre entier | Numéro d'identification de la campagne | |
 
 ***
 
