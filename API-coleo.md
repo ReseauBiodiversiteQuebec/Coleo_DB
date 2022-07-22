@@ -130,10 +130,11 @@ Les champs en gras sont obligatoires
 
 **Point d'accès** : /api/v1/lures
 
-| Champs       | Type          | Description                            | Options |
-| ------------ | ------------- | -------------------------------------- | ------- |
-| lure         | nombre entier | Numéro d'identification de la campagne |         |
-| installed_at | date          | Date d'installation de l'appât/leurre  |         |
+| Champs       | Type          | Description                                        | Options |
+| ------------ | ------------- | -------------------------------------------------- | ------- |
+| lure         | nombre entier | Type de leurre ou appât utilisé pour le dispositif |         |
+| campaign_id  | nombre entier | Numéro d'identification de la campagne             |         |
+| installed_at | date          | Date d'installation de l'appât/leurre              |         |
 
 ---
 
@@ -334,6 +335,16 @@ Note: Le format des observations d'ADN environnemental est différent des autres
 | type_edna          | choix         | Catégorie d'observation ADNe                      | "confirmé", "probable", "improbable", "non-poisson" |     |
 | notes              | Texte         | Notes                                             |                                                     |
 
+| Champs                   | Type          | Description                                       | Options                                             |
+| ------------------------ | ------------- | ------------------------------------------------- | --------------------------------------------------- | --- |
+| **observation_id**       | nombre entier | Numéro de l'observation dans la table observation |                                                     |
+| **landmark_id**          | nombre entier | Numéro du repère                                  |                                                     |
+| **taxa_name**            | texte         | Nom de l'espèce observée                          |                                                     |
+| sequence_count           | nombre réel   | Nombre de séquences                               |                                                     |
+| sequence_count_corrected | nombre réel   | Nombre de séquences corrigé                       |                                                     |
+| type_edna                | choix         | Catégorie d'observation ADNe                      | "confirmé", "probable", "improbable", "non-poisson" |     |
+| notes                    | Texte         | Notes                                             |                                                     |
+
 ---
 
 ## Observations de profil du sol
@@ -391,14 +402,16 @@ Note: la profondeur ici n'est pas la profondeur à laquelle les thermographes so
 
 **Point d'accès** : /api/v1/media
 
-| Champs           | Type  | Description                               | Options                   |
-| ---------------- | ----- | ----------------------------------------- | ------------------------- | --- |
-| **type**         | choix | Type de média                             | 'image', 'audio', 'video' |     |
-| **recorder**     | choix | Type d'enregistreur                       | 'ultrasound', 'audible'   |
-| **og_format**    | texte | Original format (jpeg, png, etc)          |                           |
-| **og_extention** | texte | Original extension (.jpg, .png, etc.)     |                           |
-| **uuid**         | texte | UUID, Identifiant unique généré par Coléo |                           |
-| **name**         | texte | Nom du fichier original                   |                           |
+| Champs           | Type          | Description                               | Options                   |
+| ---------------- | ------------- | ----------------------------------------- | ------------------------- | --- |
+| **type**         | choix         | Type de média                             | 'image', 'audio', 'video' |     |
+| **recorder**     | choix         | Type d'enregistreur                       | 'ultrasound', 'audible'   |
+| **og_format**    | texte         | Original format (jpeg, png, etc)          |                           |
+| **og_extention** | texte         | Original extension (.jpg, .png, etc.)     |                           |
+| **uuid**         | texte         | UUID, Identifiant unique généré par Coléo |                           |
+| **name**         | texte         | Nom du fichier original                   |                           |
+| **csite_id**     | nombre entier | Numéro d'identification du site           |                           |
+| **campaign_id**  | nombre entier | Numéro d'identification de la campagne    |                           |
 
 ---
 
