@@ -403,8 +403,8 @@ Note: la profondeur ici n'est pas la profondeur à laquelle les thermographes so
 **Point d'accès** : /api/v1/media
 
 | Champs           | Type          | Description                               | Options                   |
-| ---------------- | ------------- | ----------------------------------------- | ------------------------- | --- |
-| **type**         | choix         | Type de média                             | 'image', 'audio', 'video' |     |
+| ---------------- | ------------- | ----------------------------------------- | ------------------------- |
+| **type**         | choix         | Type de média                             | 'image', 'audio', 'video' |
 | **recorder**     | choix         | Type d'enregistreur                       | 'ultrasound', 'audible'   |
 | **og_format**    | texte         | Original format (jpeg, png, etc)          |                           |
 | **og_extention** | texte         | Original extension (.jpg, .png, etc.)     |                           |
