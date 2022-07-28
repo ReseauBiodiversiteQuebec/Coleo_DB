@@ -326,23 +326,14 @@ Note: Le format des observations d'ADN environnemental est différent des autres
 
 **Point d'accès** : /api/v1/obs_edna
 
-| Champs             | Type          | Description                                       | Options                                             |
-| ------------------ | ------------- | ------------------------------------------------- | --------------------------------------------------- | --- |
-| **observation_id** | nombre entier | Numéro de l'observation dans la table observation |                                                     |
-| **landmark_id**    | nombre entier | Numéro du repère                                  |                                                     |
-| **taxa_name**      | texte         | Nom de l'espèce observée                          |                                                     |
-| sequence_count     | nombre réel   | Nombre de séquences                               |                                                     |
-| type_edna          | choix         | Catégorie d'observation ADNe                      | "confirmé", "probable", "improbable", "non-poisson" |     |
-| notes              | Texte         | Notes                                             |                                                     |
-
 | Champs                   | Type          | Description                                       | Options                                             |
-| ------------------------ | ------------- | ------------------------------------------------- | --------------------------------------------------- | --- |
+| ------------------------ | ------------- | ------------------------------------------------- | --------------------------------------------------- |
 | **observation_id**       | nombre entier | Numéro de l'observation dans la table observation |                                                     |
 | **landmark_id**          | nombre entier | Numéro du repère                                  |                                                     |
 | **taxa_name**            | texte         | Nom de l'espèce observée                          |                                                     |
 | sequence_count           | nombre réel   | Nombre de séquences                               |                                                     |
 | sequence_count_corrected | nombre réel   | Nombre de séquences corrigé                       |                                                     |
-| type_edna                | choix         | Catégorie d'observation ADNe                      | "confirmé", "probable", "improbable", "non-poisson" |     |
+| type_edna                | choix         | Catégorie d'observation ADNe                      | "confirmé", "probable", "improbable", "non-poisson" |
 | notes                    | Texte         | Notes                                             |                                                     |
 
 ---
@@ -410,7 +401,7 @@ Note: la profondeur ici n'est pas la profondeur à laquelle les thermographes so
 | **og_extention** | texte         | Original extension (.jpg, .png, etc.)     |                           |
 | **uuid**         | texte         | UUID, Identifiant unique généré par Coléo |                           |
 | **name**         | texte         | Nom du fichier original                   |                           |
-| **csite_id**     | nombre entier | Numéro d'identification du site           |                           |
+| **site_id**      | nombre entier | Numéro d'identification du site           |                           |
 | **campaign_id**  | nombre entier | Numéro d'identification de la campagne    |                           |
 
 ---
