@@ -26,13 +26,16 @@
 -- * Create index
 -------------------------------------------------------------------------------
 
-ALTER TABLE obs_species ADD COLUMN id_taxa_obs integer;
+    ALTER TABLE obs_species ADD COLUMN id_taxa_obs integer;
 
-ALTER TABLE obs_species
-    ADD CONSTRAINT obs_species_id_taxa_obs_fkey
-    FOREIGN KEY (id_taxa_obs)
-    REFERENCES taxa_obs (id)
-    ON UPDATE CASCADE;
+    ALTER TABLE obs_species
+        ADD CONSTRAINT obs_species_id_taxa_obs_fkey
+        FOREIGN KEY (id_taxa_obs)
+        REFERENCES taxa_obs (id)
+        ON UPDATE CASCADE;
+
+    CREATE INDEX IF NOT EXISTS obs_species_id_taxa_obs_idx
+        ON public.obs_species (id_taxa_obs);
 
 -------------------------------------------------------------------------------
 -- * Migrate `taxa_name` values to `taxa_obs`
@@ -60,14 +63,19 @@ UPDATE obs_species
     RETURNS TRIGGER AS $$
     BEGIN
         INSERT INTO taxa_obs (scientific_name)
-        VALUES (NEW.taxa_name);
+            VALUES (NEW.taxa_name);
+        NEW.id_taxa_obs := (
+            SELECT id
+            FROM taxa_obs
+            WHERE scientific_name = NEW.taxa_name
+            );
         RETURN NEW;
     END;
     $$ LANGUAGE 'plpgsql';
 
     DROP TRIGGER IF EXISTS insert_taxa_obs ON obs_species;
     CREATE TRIGGER insert_taxa_obs
-        AFTER INSERT ON public.obs_species
+        BEFORE INSERT ON public.obs_species
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_insert_taxa_obs_from_obs_species();
 
@@ -76,4 +84,5 @@ UPDATE obs_species
     INSERT INTO obs_species (taxa_name, variable, value, observation_id)
     VALUES ('Vincent Beauregard', 'abondance', 1, 44);
     SELECT * FROM taxa_obs WHERE scientific_name = 'Vincent Beauregard';
+    SELECT * FROM obs_species WHERE taxa_name = 'Vincent Beauregard';
     ROLLBACK;
