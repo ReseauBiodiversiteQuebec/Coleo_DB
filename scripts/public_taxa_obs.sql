@@ -46,3 +46,34 @@ UPDATE obs_species
     SET id_taxa_obs = taxa_obs.id
     FROM taxa_obs
     WHERE obs_species.taxa_name = taxa_obs.scientific_name;
+
+-- TODO: TRIGGER ON INJECT (obs_species)
+
+-------------------------------------------------------------------------------
+-- CREATE FUNCTIONS AND TRIGGER to update taxa_ref on taxa_obs on insert
+-------------------------------------------------------------------------------
+    -- DROP the ref_species fk on obs_species
+    -- ALTER TABLE public.obs_species DROP CONSTRAINT obs_species_taxa_name_fkey;
+
+    -- CREATE the trigger for taxa_ref insertion:
+    CREATE OR REPLACE FUNCTION trigger_insert_taxa_obs_from_obs_species()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        INSERT INTO taxa_obs (scientific_name)
+        VALUES (NEW.taxa_name);
+        RETURN NEW;
+    END;
+    $$ LANGUAGE 'plpgsql';
+
+    DROP TRIGGER IF EXISTS insert_taxa_obs ON obs_species;
+    CREATE TRIGGER insert_taxa_obs
+        AFTER INSERT ON public.obs_species
+        FOR EACH ROW
+        EXECUTE PROCEDURE trigger_insert_taxa_obs_from_obs_species();
+
+    -- TEST and ROLLBACK
+    BEGIN;
+    INSERT INTO obs_species (taxa_name, variable, value, observation_id)
+    VALUES ('Vincent Beauregard', 'abondance', 1, 44);
+    SELECT * FROM taxa_obs WHERE scientific_name = 'Vincent Beauregard';
+    ROLLBACK;
