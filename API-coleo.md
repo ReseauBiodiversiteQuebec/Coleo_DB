@@ -329,7 +329,7 @@ Note: Le format des observations d'ADN environnemental est différent des autres
 | Champs                   | Type          | Description                                       | Options                                             |
 | ------------------------ | ------------- | ------------------------------------------------- | --------------------------------------------------- |
 | **observation_id**       | nombre entier | Numéro de l'observation dans la table observation |                                                     |
-| **landmark_id**          | nombre entier | Numéro du repère                                  |                                                     |
+| landmark_id              | nombre entier | Numéro du repère                                  |                                                     |
 | **taxa_name**            | texte         | Nom de l'espèce observée                          |                                                     |
 | sequence_count           | nombre réel   | Nombre de séquences                               |                                                     |
 | sequence_count_corrected | nombre réel   | Nombre de séquences corrigé                       |                                                     |
