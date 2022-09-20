@@ -42,11 +42,6 @@ $$
 DECLARE
     abundance_query text;
 BEGIN
-    -- Return an error if the group_by_column is not one of the allowed values
-    IF group_by_column NOT IN ('cell_id', 'cell_code', 'site_id', 'site_code', 'site_type', 'campaign_id', 'campaign_type') THEN
-        RAISE EXCEPTION 'group_by_column must be one of cell_id, cell_code, site_id, site_code, site_type, campaign_id, campaign_type';
-    END IF;
-
     abundance_query := '
         with joined_obs AS (
             SELECT
@@ -73,7 +68,11 @@ BEGIN
                 AND coalesce(sites.type::text = $6, true)
                 AND coalesce(campaigns.id = $7, true)
                 AND coalesce(campaigns.type::text = $8, true)
-        ), group_total_abundances AS (
+        )';
+
+    IF group_by_column IN ('cell_id', 'cell_code', 'site_id', 'site_code', 'site_type', 'campaign_id', 'campaign_type') THEN
+        abundance_query := abundance_query || '
+        , group_total_abundances AS (
             SELECT ' || quote_ident(group_by_column) || '::text AS grouped_by_value,
                 sum(joined_obs.value) total_abundance
             FROM joined_obs
@@ -85,8 +84,25 @@ BEGIN
             FROM joined_obs
             WHERE ' || quote_ident(group_by_column) || ' IS NOT NULL
             GROUP BY joined_obs.id_taxa_obs, ' || quote_ident(group_by_column) || '
-            ORDER BY abundance DESC
-        ), filter_obs_species AS (
+            ORDER BY abundance DESC)';
+    ELSE
+        abundance_query := abundance_query || '
+        , group_total_abundances AS (
+            SELECT ''all'' AS grouped_by_value,
+                sum(joined_obs.value) total_abundance
+            FROM joined_obs
+            GROUP BY TRUE
+        ), group_abundance AS (
+            SELECT ''all''  AS grouped_by_value,
+                joined_obs.id_taxa_obs,
+                sum(joined_obs.value) AS abundance
+            FROM joined_obs
+            GROUP BY joined_obs.id_taxa_obs
+            ORDER BY abundance DESC)';
+    END IF;
+
+    abundance_query := abundance_query || '
+        , filter_obs_species AS (
             SELECT
                 group_abundance.grouped_by_value,
                 group_abundance.id_taxa_obs,
@@ -137,3 +153,9 @@ EXPLAIN ANALYZE SELECT * FROM api.taxa_abundance('site_type', NULL , NULL , NULL
 
 -- Test the function
 EXPLAIN ANALYZE SELECT * FROM api.taxa_abundance('campaign_type', NULL , NULL , 7 , NULL , NULL , NULL , NULL );
+
+-- Test the function when when no group_by column is specified
+EXPLAIN ANALYZE SELECT * FROM api.taxa_abundance(NULL, NULL , NULL , NULL , NULL , NULL , NULL , NULL );
+
+-- Test the function when when no group_by column is specified
+EXPLAIN ANALYZE SELECT * FROM api.taxa_abundance(NULL, NULL , NULL , 7 , NULL , NULL , NULL , NULL );

@@ -42,7 +42,7 @@ DROP FUNCTION IF EXISTS api.taxa_richness (
 );
 
 CREATE OR REPLACE FUNCTION api.taxa_richness (
-    group_by_column text DEFAULT '',
+    group_by_column text DEFAULT NULL,
     cell_id_filter integer DEFAULT NULL,
     cell_code_filter text DEFAULT NULL,
     site_id_filter integer DEFAULT NULL,
@@ -61,11 +61,6 @@ $$
 DECLARE
     richness_query text;
 BEGIN
-    -- Return an error if the group_by_column is not one of the allowed values
-    IF group_by_column NOT IN ('cell_id', 'cell_code', 'site_id', 'site_code', 'site_type', 'campaign_id', 'campaign_type') THEN
-        RAISE EXCEPTION 'group_by_column must be one of cell_id, cell_code, site_id, site_code, site_type, campaign_id, campaign_type';
-    END IF;
-
     richness_query := '
         with joined_obs AS (
             SELECT
@@ -92,17 +87,34 @@ BEGIN
                 AND coalesce(sites.type::text = $6, true)
                 AND coalesce(campaigns.id = $7, true)
                 AND coalesce(campaigns.type::text = $8, true)
-        ), taxa_tips as (
-            SELECT ' || quote_ident(group_by_column) || '::text AS grouped_by_value,
-                api.taxa_branch_tips(array_agg(joined_obs.id_taxa_obs)) AS richness
-            FROM joined_obs
-            WHERE ' || quote_ident(group_by_column) || ' IS NOT NULL
-            GROUP BY ' || quote_ident(group_by_column) || '
-            ORDER BY richness DESC)
-        SELECT grouped_by_value, count(*)::int AS richness
-        FROM taxa_tips
-        GROUP BY grouped_by_value;
-    ';
+        )';
+
+    IF group_by_column IN ('cell_id', 'cell_code', 'site_id', 'site_code', 'site_type', 'campaign_id', 'campaign_type') THEN
+        richness_query := richness_query || '
+            , taxa_tips as (
+                SELECT ' || quote_ident(group_by_column) || '::text AS grouped_by_value,
+                    api.taxa_branch_tips(array_agg(joined_obs.id_taxa_obs)) AS richness
+                FROM joined_obs
+                WHERE ' || quote_ident(group_by_column) || ' IS NOT NULL
+                GROUP BY ' || quote_ident(group_by_column) || '
+                ORDER BY richness DESC)
+            SELECT grouped_by_value, count(*)::int AS richness
+            FROM taxa_tips
+            GROUP BY grouped_by_value;
+        ';
+    ELSE 
+        richness_query := richness_query || '
+            , taxa_tips as (
+                SELECT ''all'' AS grouped_by_value,
+                    api.taxa_branch_tips(array_agg(joined_obs.id_taxa_obs)) AS richness
+                FROM joined_obs
+                GROUP BY TRUE
+                ORDER BY richness DESC)
+            SELECT grouped_by_value, count(*)::int AS richness
+            FROM taxa_tips
+            GROUP BY grouped_by_value;
+        ';
+    END IF;
 
     -- Execute the query
     RETURN QUERY EXECUTE richness_query
@@ -135,3 +147,8 @@ EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('cell_code', NULL, NULL, NULL, N
 -- taxa_richness( group_by_column text, cell_id_filter integer, cell_code_filter text, site_id_filter integer, site_code_filter text, site_type_filter text, campaign_id_filter integer, campaign_type_filter text)
 EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('campaign_type', NULL, NULL, 7, NULL, NULL, NULL, NULL);
 
+-- Test the function when group_by is NULL
+
+EXPLAIN ANALYZE SELECT * FROM api.taxa_richness(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+EXPLAIN ANALYZE SELECT * FROM api.taxa_richness(NULL, NULL, NULL, 7, NULL, NULL, NULL, NULL);
