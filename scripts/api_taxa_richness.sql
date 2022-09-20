@@ -7,20 +7,20 @@
 CREATE OR REPLACE FUNCTION api.taxa_branch_tips (
     taxa_obs_ids integer[]
 ) RETURNS table (id_taxa_obs integer) AS $$
-    WITH sum_valid_ref AS (
+    WITH sum_filterid_ref AS (
         select
             min(id_taxa_obs) id_taxa_obs,
-            id_taxa_ref_valid id_taxa_ref,
-            count(id_taxa_ref_valid) count_taxa_ref,
+            id_taxa_ref_filterid id_taxa_ref,
+            count(id_taxa_ref_filterid) count_taxa_ref,
             min(match_type) match_type
         from taxa_obs_ref_lookup obs_lookup
         WHERE (match_type != 'complex' or match_type is null)
             AND obs_lookup.id_taxa_obs = any(taxa_obs_ids)
-        group by id_taxa_ref_valid
+        group by id_taxa_ref_filterid
     )
     select
-        distinct(sum_valid_ref.id_taxa_obs) id_taxa_obs
-    from sum_valid_ref
+        distinct(sum_filterid_ref.id_taxa_obs) id_taxa_obs
+    from sum_filterid_ref
     where count_taxa_ref = 1
         and match_type is not null
 $$ LANGUAGE sql;
@@ -30,27 +30,43 @@ SELECT api.taxa_branch_tips(ARRAY[6489, 5888, 6514]);
 -- CREATE FUNCTION api.taxa_richness that returns a table with the number of unique taxa observed
 -- based on the tip-of-the-branch method
 
-DROP FUNCTION IF EXISTS api.taxa_richness (text);
+DROP FUNCTION IF EXISTS api.taxa_richness (
+    text,
+    integer,
+    text,
+    integer,
+    text,
+    text,
+    integer,
+    text
+);
 
 CREATE OR REPLACE FUNCTION api.taxa_richness (
-    group_by_column text DEFAULT ''
+    group_by_column text DEFAULT '',
+    cell_id_filter integer DEFAULT NULL,
+    cell_code_filter text DEFAULT NULL,
+    site_id_filter integer DEFAULT NULL,
+    site_code_filter text DEFAULT NULL,
+    site_type_filter text DEFAULT NULL,
+    campaign_id_filter integer DEFAULT NULL,
+    campaign_type_filter text DEFAULT NULL
 )
 RETURNS TABLE (
-    group_by_value text,
+    grouped_by_value text,
     richness integer
 ) AS
 $$
 
 -- Build the query to select the `group_by_column` and count the number of observations
 DECLARE
-    abundance_query text;
+    richness_query text;
 BEGIN
     -- Return an error if the group_by_column is not one of the allowed values
     IF group_by_column NOT IN ('cell_id', 'cell_code', 'site_id', 'site_code', 'site_type', 'campaign_id', 'campaign_type') THEN
         RAISE EXCEPTION 'group_by_column must be one of cell_id, cell_code, site_id, site_code, site_type, campaign_id, campaign_type';
     END IF;
 
-    abundance_query := '
+    richness_query := '
         with joined_obs AS (
             SELECT
                 obs_species.id,
@@ -68,32 +84,54 @@ BEGIN
             JOIN campaigns ON observations.campaign_id = campaigns.id
             JOIN sites ON campaigns.site_id = sites.id
             JOIN cells ON sites.cell_id = cells.id
+            WHERE
+                coalesce(cells.id = $2, true)
+                AND coalesce(cells.cell_code = $3, true)
+                AND coalesce(sites.id = $4, true)
+                AND coalesce(sites.site_code = $5, true)
+                AND coalesce(sites.type::text = $6, true)
+                AND coalesce(campaigns.id = $7, true)
+                AND coalesce(campaigns.type::text = $8, true)
         ), taxa_tips as (
-            SELECT ' || quote_ident(group_by_column) || '::text AS group_by_value,
+            SELECT ' || quote_ident(group_by_column) || '::text AS grouped_by_value,
                 api.taxa_branch_tips(array_agg(joined_obs.id_taxa_obs)) AS richness
             FROM joined_obs
             WHERE ' || quote_ident(group_by_column) || ' IS NOT NULL
             GROUP BY ' || quote_ident(group_by_column) || '
             ORDER BY richness DESC)
-        SELECT group_by_value, count(*)::int AS richness
+        SELECT grouped_by_value, count(*)::int AS richness
         FROM taxa_tips
-        GROUP BY group_by_value;
+        GROUP BY grouped_by_value;
     ';
 
     -- Execute the query
-    RETURN QUERY EXECUTE abundance_query;
+    RETURN QUERY EXECUTE richness_query
+    USING 
+        group_by_column,
+        cell_id_filter,
+        cell_code_filter,
+        site_id_filter,
+        site_code_filter,
+        site_type_filter,
+        campaign_id_filter,
+        campaign_type_filter;
 END;
 $$
 LANGUAGE plpgsql stable;
 
--- Test the function
-EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('site_code');
+-- ALTER FUNCTION OWNER TO postgres;
+ALTER FUNCTION api.taxa_richness(text, integer, text, integer, text, text, integer, text) OWNER TO postgres;
 
 -- Test the function
-EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('site_type');
+EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('site_code', NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- Test the function
-EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('cell_code');
+EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('site_type', NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- Test the function
-EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('cell_id');
+EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('cell_code', NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- Test the function group by campaign_type and filter by site_id = 7
+-- taxa_richness( group_by_column text, cell_id_filter integer, cell_code_filter text, site_id_filter integer, site_code_filter text, site_type_filter text, campaign_id_filter integer, campaign_type_filter text)
+EXPLAIN ANALYZE SELECT * FROM api.taxa_richness('campaign_type', NULL, NULL, 7, NULL, NULL, NULL, NULL);
+
