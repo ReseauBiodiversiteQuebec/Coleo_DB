@@ -63,7 +63,8 @@ UPDATE obs_species
     RETURNS TRIGGER AS $$
     BEGIN
         INSERT INTO taxa_obs (scientific_name)
-            VALUES (NEW.taxa_name);
+            VALUES (NEW.taxa_name)
+            ON CONFLICT DO NOTHING;
         NEW.id_taxa_obs := (
             SELECT id
             FROM taxa_obs
@@ -85,4 +86,12 @@ UPDATE obs_species
     VALUES ('Vincent Beauregard', 'abondance', 1, 44);
     SELECT * FROM taxa_obs WHERE scientific_name = 'Vincent Beauregard';
     SELECT * FROM obs_species WHERE taxa_name = 'Vincent Beauregard';
+    ROLLBACK;
+
+    -- TEST for existing taxa
+    BEGIN;
+    INSERT INTO obs_species (taxa_name, variable, value, observation_id)
+    VALUES ('Acer saccharum', 'recouvrement', 0, 9);
+    SELECT * FROM taxa_obs WHERE scientific_name = 'Acer saccharum';
+    SELECT * FROM obs_species WHERE taxa_name = 'Acer saccharum';
     ROLLBACK;
