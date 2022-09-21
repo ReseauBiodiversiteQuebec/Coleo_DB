@@ -6,8 +6,8 @@ CREATE SCHEMA IF NOT EXISTS api;
 --   ref sources and vernacular sources
 -- -----------------------------------------------------------------------------
 
-DROP VIEW if exists api.taxa CASCADE;
-CREATE VIEW api.taxa AS (
+-- DROP VIEW if exists api.taxa CASCADE;
+CREATE OR REPLACE VIEW api.taxa AS (
 	with all_ref as (
 		select
 			obs_lookup.id_taxa_obs,
@@ -36,6 +36,8 @@ CREATE VIEW api.taxa AS (
 			valid_scientific_name,
 			rank
 		from all_ref
+		join taxa_source_priority using (source_name)
+		order by id_taxa_obs, priority asc
 	), obs_group as (
 		select
 			distinct on (group_lookup.id_taxa_obs)
