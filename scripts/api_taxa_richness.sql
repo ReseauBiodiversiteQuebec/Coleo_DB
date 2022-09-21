@@ -61,6 +61,11 @@ $$
 DECLARE
     richness_query text;
 BEGIN
+    -- RAISE AN EXCEPTION IF group_by_column IS NOT NULL AND IS NOT IN THE ALLOWED VALUES
+    IF group_by_column IS NOT NULL AND group_by_column NOT IN ('cell_id', 'cell_code', 'site_id', 'site_code', 'site_type', 'campaign_id', 'campaign_type') THEN
+        RAISE EXCEPTION 'group_by_column must be NULL or one of the following values: cell_id, cell_code, site_id, site_code, site_type, campaign_id, campaign_type';
+    END IF;
+
     richness_query := '
         with obs_taxa as (
             SELECT id_taxa_obs, value, observation_id
