@@ -42,12 +42,25 @@ $$
 DECLARE
     abundance_query text;
 BEGIN
+    -- RAISE AN EXCEPTION IF group_by_column IS NOT NULL AND IS NOT IN THE ALLOWED VALUES
+    IF group_by_column IS NOT NULL AND group_by_column NOT IN ('cell_id', 'cell_code', 'site_id', 'site_code', 'site_type', 'campaign_id', 'campaign_type') THEN
+        RAISE EXCEPTION 'group_by_column must be NULL or one of the following values: cell_id, cell_code, site_id, site_code, site_type, campaign_id, campaign_type';
+    END IF;
+
     abundance_query := '
-        with joined_obs AS (
+        with obs_taxa as (
+            SELECT id_taxa_obs, value, observation_id
+                FROM obs_species
+                WHERE id_taxa_obs IS NOT NULL
+            UNION
+            SELECT id_taxa_obs, sequence_count as value, observation_id
+                FROM obs_edna
+                WHERE id_taxa_obs IS NOT NULL
+                AND type_edna::text = ANY(ARRAY[''confirmé'', ''probable''])
+        ), joined_obs AS (
             SELECT
-                obs_species.id,
-                obs_species.id_taxa_obs,
-                obs_species.value,
+                obs_taxa.id_taxa_obs,
+                obs_taxa.value,
                 observations.campaign_id,
                 campaigns.site_id,
                 campaigns.type as campaign_type,
@@ -55,8 +68,8 @@ BEGIN
                 cells.cell_code,
                 sites.site_code,
                 sites.type as site_type
-            FROM obs_species
-            JOIN observations ON obs_species.observation_id = observations.id
+            FROM obs_taxa
+            JOIN observations ON obs_taxa.observation_id = observations.id
             JOIN campaigns ON observations.campaign_id = campaigns.id
             JOIN sites ON campaigns.site_id = sites.id
             JOIN cells ON sites.cell_id = cells.id
