@@ -50,8 +50,9 @@ CREATE OR REPLACE VIEW api.taxa AS (
 	), vernacular_all as(
 		select v_lookup.id_taxa_obs, taxa_vernacular.*
 		from taxa_obs_vernacular_lookup v_lookup
-		left join taxa_vernacular on v_lookup.id_taxa_vernacular = taxa_vernacular.id
+		left join taxa_vernacular on v_lookup.id_taxa_vernacular = taxa_vernacular.id			
 		where match_type is not null
+			AND v_lookup.match_type != 'complex'
 	), best_vernacular as (
 		select
 			ver_en.id_taxa_obs,
@@ -103,8 +104,8 @@ CREATE OR REPLACE VIEW api.taxa AS (
 -- DESCRIPTION List observed taxa at cell, site and campain level
 -- -----------------------------------------------------------------------------
 
-DROP VIEW if exists api.taxa_surveyed CASCADE;
-CREATE VIEW api.taxa_surveyed AS (
+-- DROP VIEW if exists api.taxa_surveyed CASCADE;
+CREATE OR REPLACE VIEW api.taxa_surveyed AS (
     WITH survey_lookup AS (
         SELECT DISTINCT
             obs_species.id_taxa_obs,

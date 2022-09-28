@@ -2,16 +2,16 @@
 -- DESCRIPTION: 'Top taxa observed for a cell_id, cell_code, site_id, site_code, site_type
 -- Returns api.taxa columns with `abundance` and `observed_percent` columns
 
-DROP FUNCTION IF EXISTS api.taxa_abundance (
-    text,
-    integer,
-    text,
-    integer,
-    text,
-    text,
-    integer,
-    text
-);
+-- DROP FUNCTION IF EXISTS api.taxa_abundance (
+--     text,
+--     integer,
+--     text,
+--     integer,
+--     text,
+--     text,
+--     integer,
+--     text
+-- );
 
 -- CREATE FUNCTION api.taxa_abundance that takes with NULL default argument
 CREATE OR REPLACE FUNCTION api.taxa_abundance (
@@ -28,8 +28,6 @@ RETURNS TABLE (
     grouped_by_value text,
     abundance numeric,
     relative_abundance numeric,
-    id_taxa_obs integer,
-    observed_scientific_name text,
     valid_scientific_name text,
     rank text,
     vernacular_en text,
@@ -117,29 +115,30 @@ BEGIN
     abundance_query := abundance_query || '
         , filter_obs_species AS (
             SELECT
-                group_abundance.grouped_by_value,
-                group_abundance.id_taxa_obs,
-                group_abundance.abundance,
-                group_abundance.abundance / group_total_abundances.total_abundance as relative_abundance
+                min(group_abundance.grouped_by_value) as grouped_by_value,
+                taxa.valid_scientific_name,
+                sum(group_abundance.abundance) as abundance,
+                sum(group_abundance.abundance) / sum(group_total_abundances.total_abundance) as relative_abundance
             FROM group_abundance
             JOIN group_total_abundances USING (grouped_by_value)
-        )
-        SELECT
-            filter_obs_species.grouped_by_value,
-            filter_obs_species.abundance::numeric,
-            filter_obs_species.relative_abundance::numeric,
-            filter_obs_species.id_taxa_obs,
-            taxa.observed_scientific_name,
-            taxa.valid_scientific_name,
-            taxa.rank,
-            taxa.vernacular_en,
-            taxa.vernacular_fr,
-            taxa.group_en,
-            taxa.group_fr
-        FROM filter_obs_species
-        JOIN api.taxa USING (id_taxa_obs)
-        ORDER BY filter_obs_species.grouped_by_value, filter_obs_species.abundance DESC;
-        ';
+            JOIN api.taxa USING (id_taxa_obs)
+            GROUP BY taxa.valid_scientific_name)
+        , results AS (
+            SELECT
+                distinct on (filter_obs_species.grouped_by_value, filter_obs_species.valid_scientific_name)
+                filter_obs_species.grouped_by_value,
+                filter_obs_species.abundance::numeric,
+                filter_obs_species.relative_abundance::numeric,
+                taxa.valid_scientific_name,
+                taxa.rank,
+                taxa.vernacular_en,
+                taxa.vernacular_fr,
+                taxa.group_en,
+                taxa.group_fr
+            FROM filter_obs_species
+            LEFT JOIN api.taxa USING (valid_scientific_name))
+        SELECT * FROM results ORDER BY grouped_by_value, abundance DESC;';
+
 
     -- Execute the query
     RETURN QUERY EXECUTE abundance_query
