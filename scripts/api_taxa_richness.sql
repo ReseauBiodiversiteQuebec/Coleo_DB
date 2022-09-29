@@ -53,7 +53,8 @@ CREATE OR REPLACE FUNCTION api.taxa_richness (
 )
 RETURNS TABLE (
     grouped_by_value text,
-    richness integer
+    richness integer,
+    taxa_list json
 ) AS
 $$
 
@@ -106,26 +107,49 @@ BEGIN
         richness_query := richness_query || '
             , taxa_tips as (
                 SELECT ' || quote_ident(group_by_column) || '::text AS grouped_by_value,
-                    api.taxa_branch_tips(array_agg(joined_obs.id_taxa_obs)) AS richness
+                    api.taxa_branch_tips(array_agg(joined_obs.id_taxa_obs)) AS id_taxa_obs
                 FROM joined_obs
                 WHERE ' || quote_ident(group_by_column) || ' IS NOT NULL
                 GROUP BY ' || quote_ident(group_by_column) || '
-                ORDER BY richness DESC)
-            SELECT grouped_by_value, count(*)::int AS richness
-            FROM taxa_tips
-            GROUP BY grouped_by_value;
+                )
+            SELECT
+                grouped_by_value::text,
+                count(taxa_tips.id_taxa_obs)::integer AS richness,
+                json_agg(row_to_json(taxa))::json AS taxa_list
+            FROM taxa_tips, (
+                SELECT
+                    id_taxa_obs,
+                    valid_scientific_name,
+                    vernacular_en,
+                    vernacular_fr,
+                    group_fr,
+                    group_en
+                FROM api.taxa) taxa
+            WHERE taxa.id_taxa_obs = taxa_tips.id_taxa_obs
+            GROUP BY grouped_by_value
         ';
     ELSE 
         richness_query := richness_query || '
             , taxa_tips as (
                 SELECT ''all'' AS grouped_by_value,
-                    api.taxa_branch_tips(array_agg(joined_obs.id_taxa_obs)) AS richness
+                    api.taxa_branch_tips(array_agg(joined_obs.id_taxa_obs)) AS id_taxa_obs
                 FROM joined_obs
-                GROUP BY TRUE
-                ORDER BY richness DESC)
-            SELECT grouped_by_value, count(*)::int AS richness
-            FROM taxa_tips
-            GROUP BY grouped_by_value;
+                GROUP BY TRUE)
+            SELECT
+                grouped_by_value::text,
+                count(taxa_tips.id_taxa_obs)::integer AS richness,
+                json_agg(row_to_json(taxa))::json AS taxa_list
+            FROM taxa_tips, (
+                SELECT
+                    id_taxa_obs,
+                    valid_scientific_name,
+                    vernacular_en,
+                    vernacular_fr,
+                    group_fr,
+                    group_en
+                FROM api.taxa) taxa
+            WHERE taxa.id_taxa_obs = taxa_tips.id_taxa_obs
+            GROUP BY grouped_by_value
         ';
     END IF;
 
