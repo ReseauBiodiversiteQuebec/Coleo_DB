@@ -58,7 +58,7 @@ Les champs en gras sont obligatoires
 | Champs      | Type         | Description                                                        | Options                                                                                                                                                                                                                                                                                                      |
 | ----------- | ------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **site_id** | texte        | Identifiant unique du site attaché à la campagne d'échantillonnage |                                                                                                                                                                                                                                                                                                              |
-| **type**    | choix        | Le type campagne réalisé                                           | 'végétation', 'végétation_transect', 'sol', 'décomposition_sol', 'acoustique_chiroptères','acoustique_oiseaux','acoustique_anoures','acoustique_orthoptères', 'phénologie', 'mammifères', 'papilionidés', 'odonates', 'insectes_sol', 'ADNe','zooplancton', 'température_eau', 'température_sol', 'marais_profondeur_température' |
+| **type**    | choix        | Le type campagne réalisé                                           | 'végétation', 'végétation_transect', 'sol', 'décomposition_sol', 'acoustique_chiroptères','acoustique_oiseaux','acoustique_anoures','acoustique_orthoptères', 'phénologie', 'mammifères', 'papilionidés', 'odonates', 'insectes_sol', 'ADNe','zooplancton', 'thermographe' |
 | technicians | ARRAY(texte) | Noms des technicien(ne)s                                           |                                                                                                                                                                                                                                                                                                              |
 | opened_at   | date         | Date d'ouverture de la campagne d'échantillonnage                  |                                                                                                                                                                                                                                                                                                              |
 | closed_at   | date         | Date de fermeture de la campagne d'échantillonnage                 |                                                                                                                                                                                                                                                                                                              |
@@ -210,8 +210,8 @@ Cette table est utilisée pour faire la liste de thermographes pour la températ
 | ------------------ | -------------- | ------------------------------------------------------- | ------- |
 | **landmark_id**    | nombre entier  | Numéro du repère                                        |         |
 | **thermograph_no** | texte          | Numéro/code du thermographe                             |         |
-| depth              | nombre décimal | Profondeur dans l'eau ou dans le sol                    |         |
-| height             | nombre décimal | Hauteur pour les thermographes extérieurs               |         |
+| depth              | nombre décimal | Profondeur dans l'eau ou dans le sol (cm)               |         |
+| height             | nombre décimal | Hauteur pour les thermographes extérieurs (cm)          |         |
 | is_on_bag          | booléen 1/0    | Est-ce le dernier thermographe sur le sac de la chaîne? |         |
 | shading            | nombre entier  | Ombrage de 1 (aucun ombrage) à 5 (complètement ombragé) |         |
 | notes              | texte          | Commentaires                                            |         |
@@ -371,19 +371,17 @@ Note: Le format des observations d'ADN environnemental est différent des autres
 
 ---
 
-## Observations de température et de profondeur d'eau, du sol et en marais.
+## Observations de température et de pression.
 
-Note: la profondeur ici n'est pas la profondeur à laquelle les thermographes sont installés, mais la profondeur mesurée par les appareils dans les puits en marais.
+**Nom de la table** : obs_thermograph
 
-**Nom de la table** : obs_temperature_depth
-
-**Point d'accès** : /api/v1/obs_temperature_depth
+**Point d'accès** : /api/v1/obs_thermograph
 
 | Champs             | Type           | Description                                       | Options |
 | ------------------ | -------------- | ------------------------------------------------- | ------- |
 | **observation_id** | nombre entier  | Numéro de l'observation dans la table observation |         |
 | temperature        | nombre décimal | Température (C)                                   |         |
-| water_depth        | nombre décimal | Profondeur de l'eau en marais                     |         |
+| pressure           | nombre décimal | Pression (psi)                                    |         |
 
 ---
 
