@@ -170,3 +170,19 @@ CREATE INDEX IF NOT EXISTS scientific_name_idx
         AFTER INSERT ON public.taxa_obs
         FOR EACH ROW
         EXECUTE PROCEDURE trigger_insert_taxa_ref_from_taxa_obs();
+
+-------------------------------------------------------------------------------
+-- REFRESH taxa_ref and taxa_obs_ref_lookup
+-------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION refresh_taxa_ref()
+RETURNS void AS
+$$
+BEGIN
+    DELETE FROM public.taxa_ref;
+    DELETE FROM public.taxa_obs_ref_lookup;
+    PERFORM public.insert_taxa_ref_from_taxa_obs(
+        id, scientific_name)
+    FROM public.taxa_obs;
+END;
+$$ LANGUAGE 'plpgsql';

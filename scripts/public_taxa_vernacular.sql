@@ -159,3 +159,18 @@ $BODY$
 LANGUAGE 'plpgsql';
 
 -- select insert_taxa_vernacular_from_obs(2072);
+
+------------------------------------------------------------------------
+-- FUNCTION refresh_taxa_vernacular
+------------------------------------------------------------------------
+
+-- DROP FUNCTION IF EXISTS refresh_taxa_vernacular() CASCADE;
+CREATE OR REPLACE FUNCTION refresh_taxa_vernacular()
+RETURNS void AS
+$$
+BEGIN
+    DELETE FROM taxa_obs_vernacular_lookup;
+    DELETE FROM taxa_vernacular;
+    PERFORM insert_taxa_vernacular_from_obs(id) FROM taxa_obs;
+END;
+$$ LANGUAGE plpgsql;
