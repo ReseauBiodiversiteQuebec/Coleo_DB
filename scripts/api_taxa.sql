@@ -134,3 +134,43 @@ CREATE OR REPLACE VIEW api.taxa_surveyed AS (
     FROM api.taxa, survey_lookup
     WHERE survey_lookup.id_taxa_obs = taxa.id_taxa_obs
 );
+
+
+-- -----------------------------------------------------------------------------
+-- FUNCTION api.match_taxa
+-- DESCRIPTION Match taxa to a reference name and returns all children
+-- -----------------------------------------------------------------------------
+
+DROP FUNCTION IF EXISTS api.match_taxa(text);
+CREATE FUNCTION match_taxa(
+	taxa_name text	
+)
+RETURNS SETOF api.taxa AS $$
+    with match_taxa_obs as (
+        (
+            select ref_lookup.id_taxa_obs id
+            from taxa_ref
+            left join taxa_obs_ref_lookup ref_lookup
+                on taxa_ref.id = ref_lookup.id_taxa_ref
+            where LOWER(taxa_ref.scientific_name) = LOWER(taxa_name)
+        ) UNION (
+            select vernacular_lookup.id_taxa_obs
+            from taxa_vernacular
+            left join taxa_obs_vernacular_lookup vernacular_lookup
+                on taxa_vernacular.id = vernacular_lookup.id_taxa_vernacular
+            where LOWER(taxa_vernacular.name) = LOWER(taxa_name)
+        )
+    ), synonym_taxa_obs as (
+		select distinct taxa_obs.*
+		from match_taxa_obs
+		left join taxa_obs_ref_lookup search_lookup
+			on match_taxa_obs.id = search_lookup.id_taxa_obs
+		left join taxa_obs_ref_lookup synonym_lookup
+			on search_lookup.id_taxa_ref_valid = synonym_lookup.id_taxa_ref_valid
+		left join taxa_obs
+			on synonym_lookup.id_taxa_obs = taxa_obs.id
+		where search_lookup.match_type is not null)
+	SELECT taxa.* from api.taxa, synonym_taxa_obs
+	WHERE synonym_taxa_obs.id = api.taxa.id_taxa_obs
+$$ LANGUAGE sql;
+

@@ -7,25 +7,22 @@
 CREATE OR REPLACE FUNCTION api.taxa_branch_tips (
     taxa_obs_ids integer[]
 ) RETURNS table (id_taxa_obs integer) AS $$
-    WITH sum_filterid_ref AS (
-        select
-            min(id_taxa_obs) id_taxa_obs,
-            id_taxa_ref_filterid id_taxa_ref,
-            count(id_taxa_ref_filterid) count_taxa_ref,
-            min(match_type) match_type
-        from taxa_obs_ref_lookup obs_lookup
-        WHERE (match_type != 'complex' or match_type is null)
-            AND obs_lookup.id_taxa_obs = any(taxa_obs_ids)
-        group by id_taxa_ref_filterid
-    )
-    select
-        distinct(sum_filterid_ref.id_taxa_obs) id_taxa_obs
-    from sum_filterid_ref
-    where count_taxa_ref = 1
-        and match_type is not null
+WITH ref_valid_tips AS (
+	select
+		id_taxa_ref_valid id_taxa_ref,
+		bool_or(is_parent) is_parent
+	from taxa_obs_ref_lookup obs_lookup
+	WHERE (match_type != 'complex' or match_type is null)
+		AND obs_lookup.id_taxa_obs = any(taxa_obs_ids)
+	group by id_taxa_ref_valid
+)
+SELECT distinct id_taxa_obs
+FROM ref_valid_tips
+JOIN taxa_obs_ref_lookup USING (id_taxa_ref, is_parent)
+WHERE is_parent is not true
 $$ LANGUAGE sql;
 
-SELECT api.taxa_branch_tips(ARRAY[6489, 5888, 6514]);
+SELECT api.taxa_branch_tips(ARRAY[6065, 6007, 6636, 6619]);
 
 -- CREATE FUNCTION api.taxa_richness that returns a table with the number of unique taxa observed
 -- based on the tip-of-the-branch method
