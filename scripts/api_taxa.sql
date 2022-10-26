@@ -74,7 +74,8 @@ CREATE OR REPLACE VIEW api.taxa AS (
 			valid_scientific_name,
 			rank
 		from all_ref
-		-- order by id_taxa_obs, source_priority
+		join taxa_source_priority using (source_name)
+		order by id_taxa_obs, priority asc
 	), obs_group as (
 		select
 			distinct on (group_lookup.id_taxa_obs)
@@ -142,8 +143,8 @@ CREATE OR REPLACE VIEW api.taxa AS (
 -- DESCRIPTION List observed taxa at cell, site and campain level
 -- -----------------------------------------------------------------------------
 
-DROP VIEW if exists api.taxa_surveyed CASCADE;
-CREATE VIEW api.taxa_surveyed AS (
+-- DROP VIEW if exists api.taxa_surveyed CASCADE;
+CREATE OR REPLACE VIEW api.taxa_surveyed AS (
     WITH survey_lookup AS (
         SELECT DISTINCT
             obs_species.id_taxa_obs,
@@ -175,62 +176,40 @@ CREATE VIEW api.taxa_surveyed AS (
 
 
 -- -----------------------------------------------------------------------------
--- FUNCTION api.taxa_richness
--- DESCRIPTION Count observed taxa at cell, site and campain level
+-- FUNCTION api.match_taxa
+-- DESCRIPTION Match taxa to a reference name and returns all children
 -- -----------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION api.taxa_richness (
-    cell_id_val integer DEFAULT NULL,
-    cell_code_val text DEFAULT NULL,
-    site_id_val integer DEFAULT NULL,
-    site_code_val text DEFAULT NULL,
-    site_type_val text DEFAULT NULL,
-    campaign_id_val integer DEFAULT NULL,
-    campaign_type_val text DEFAULT NULL
-) RETURNS integer AS $$
-	WITH sel_taxa_obs as (
-		SELECT id_taxa_obs
-		FROM api.taxa_surveyed
-		WHERE
-			coalesce(taxa_surveyed.cell_id = cell_id_val, true)
-			AND coalesce(taxa_surveyed.cell_code = cell_code_val, true)
-			AND coalesce(taxa_surveyed.site_id = site_id_val, true)
-			AND coalesce(taxa_surveyed.site_code = site_code_val, true)
-			AND coalesce(taxa_surveyed.site_type::text = site_type_val, true)
-			AND coalesce(taxa_surveyed.campaign_id = campaign_id_val, true)
-			AND coalesce(taxa_surveyed.campaign_type::text = campaign_type_val, true)
-	), sum_valid_ref as (
-		select
-			id_taxa_ref_valid id_taxa_ref,
-			min(lu.id_taxa_obs) id_taxa_obs,
-			count(id_taxa_ref_valid) count_taxa_ref,
-			min(match_type) match_type
-		from sel_taxa_obs sel
-		left join taxa_obs_ref_lookup lu on sel.id_taxa_obs = lu.id_taxa_obs
-		where match_type != 'complex' or match_type is null
-		group by id_taxa_ref_valid
-	)
-	select
-		count(distinct(sum_valid_ref.id_taxa_obs))
-	from sum_valid_ref
-	where count_taxa_ref = 1 and
-		match_type is not null
-$$ LANGUAGE SQL;
+DROP FUNCTION IF EXISTS api.match_taxa(text);
+CREATE FUNCTION match_taxa(
+	taxa_name text	
+)
+RETURNS SETOF api.taxa AS $$
+    with match_taxa_obs as (
+        (
+            select ref_lookup.id_taxa_obs id
+            from taxa_ref
+            left join taxa_obs_ref_lookup ref_lookup
+                on taxa_ref.id = ref_lookup.id_taxa_ref
+            where LOWER(taxa_ref.scientific_name) = LOWER(taxa_name)
+        ) UNION (
+            select vernacular_lookup.id_taxa_obs
+            from taxa_vernacular
+            left join taxa_obs_vernacular_lookup vernacular_lookup
+                on taxa_vernacular.id = vernacular_lookup.id_taxa_vernacular
+            where LOWER(taxa_vernacular.name) = LOWER(taxa_name)
+        )
+    ), synonym_taxa_obs as (
+		select distinct taxa_obs.*
+		from match_taxa_obs
+		left join taxa_obs_ref_lookup search_lookup
+			on match_taxa_obs.id = search_lookup.id_taxa_obs
+		left join taxa_obs_ref_lookup synonym_lookup
+			on search_lookup.id_taxa_ref_valid = synonym_lookup.id_taxa_ref_valid
+		left join taxa_obs
+			on synonym_lookup.id_taxa_obs = taxa_obs.id
+		where search_lookup.match_type is not null)
+	SELECT taxa.* from api.taxa, synonym_taxa_obs
+	WHERE synonym_taxa_obs.id = api.taxa.id_taxa_obs
+$$ LANGUAGE sql;
 
-
--- with sum_valid_ref as (
--- 	select
--- 		id_taxa_ref_valid id_taxa_ref,
--- 		min(id_taxa_obs) id_taxa_obs,
--- 		count(distinct(id_taxa_obs)) count_taxa_obs,
--- 		count(id_taxa_ref_valid) count_taxa_ref,
--- 		min(match_type) match_type
--- 	from taxa_obs_ref_lookup
--- 	where match_type != 'complex' or match_type is null
--- 	group by id_taxa_ref_valid
--- )
--- select
--- 	count(distinct(id_taxa_obs))
--- from sum_valid_ref
--- where count_taxa_ref = 1 and
--- 	match_type is not null

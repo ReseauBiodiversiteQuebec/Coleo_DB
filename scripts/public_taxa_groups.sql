@@ -59,13 +59,16 @@ COPY public.taxa_group_members (id_group, scientific_name) FROM stdin;
 -- DESCRIPTION lookup table between taxa_groups and taxa_obs
 -- -----------------------------------------------------------------------------
 
-    DROP VIEW IF EXISTS public.taxa_obs_group_lookup CASCADE;
-    CREATE VIEW public.taxa_obs_group_lookup AS (
-        select distinct
+    -- DROP VIEW IF EXISTS public.taxa_obs_group_lookup CASCADE;
+    CREATE OR REPLACE VIEW public.taxa_obs_group_lookup AS (
+        select distinct on (obs_lookup.id_taxa_obs)
             obs_lookup.id_taxa_obs, group_m.id_group
         from public.taxa_group_members group_m
         left join public.taxa_ref
             on group_m.scientific_name = taxa_ref.scientific_name
         left join public.taxa_obs_ref_lookup obs_lookup
             on taxa_ref.id = obs_lookup.id_taxa_ref
+        join public.taxa_source_priority source_p
+            on taxa_ref.source_id = source_p.source_id
+        order by obs_lookup.id_taxa_obs, source_p.priority
     );
