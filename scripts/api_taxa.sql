@@ -1,24 +1,62 @@
 CREATE SCHEMA IF NOT EXISTS api;
 
+-- -----------------------------------------------------
+-- Table `api.taxa_ref_sources
+-- DESCRIPTION: This table contains the list of sources for taxa data with priority
+-- -----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS api.taxa_ref_sources (
+  source_id INTEGER PRIMARY KEY,
+  source_name VARCHAR(255) NOT NULL,
+  source_priority INTEGER NOT NULL
+);
+
+DELETE FROM api.taxa_ref_sources;
+
+INSERT INTO api.taxa_ref_sources
+VALUES (1002, 'CDPNQ', 1),
+	(1001, 'Bryoquel', 2),
+	(147, 'VASCAN', 3),
+	(3, 'ITIS', 4),
+	(11, 'GBIF Backbone Taxonomy', 5),
+	(1, 'Catalogue of Life', 6);
+
+CREATE TABLE IF NOT EXISTS api.taxa_vernacular_sources(
+	source_name VARCHAR(255) PRIMARY KEY,
+	source_priority INTEGER NOT NULL
+);
+
+DELETE FROM api.taxa_vernacular_sources;
+
+INSERT INTO api.taxa_vernacular_sources
+VALUES ('CDPNQ', 1),
+	('Bryoquel', 2),
+	('Database of Vascular Plants of Canada (VASCAN)', 3),
+	('Integrated Taxonomic Information System (ITIS)', 4);
+
+
 -- -----------------------------------------------------------------------------
 -- VIEW api.taxa
 -- DESCRIPTION List all observed taxons with their matched attributes from ref
 --   ref sources and vernacular sources
 -- -----------------------------------------------------------------------------
 
-DROP VIEW if exists api.taxa CASCADE;
-CREATE VIEW api.taxa AS (
+-- DROP VIEW if exists api.taxa CASCADE;
+CREATE OR REPLACE VIEW api.taxa AS (
 	with all_ref as (
 		select
 			obs_lookup.id_taxa_obs,
 			taxa_ref.scientific_name valid_scientific_name,
 			taxa_ref.rank,
 			taxa_ref.source_name,
+			source_priority,
 			taxa_ref.source_record_id source_taxon_key
 		from taxa_obs_ref_lookup obs_lookup
 		left join taxa_ref on obs_lookup.id_taxa_ref_valid = taxa_ref.id
+		JOIN api.taxa_ref_sources USING (source_id)
 		WHERE obs_lookup.match_type is not null
 			AND obs_lookup.match_type != 'complex'
+		ORDER BY obs_lookup.id_taxa_obs, source_priority
 	), agg_ref as (
 		select
 			id_taxa_obs,
@@ -36,6 +74,7 @@ CREATE VIEW api.taxa AS (
 			valid_scientific_name,
 			rank
 		from all_ref
+		-- order by id_taxa_obs, source_priority
 	), obs_group as (
 		select
 			distinct on (group_lookup.id_taxa_obs)
@@ -46,17 +85,19 @@ CREATE VIEW api.taxa AS (
 		left join taxa_groups on group_lookup.id_group = taxa_groups.id
 		where taxa_groups.level = 1
 	), vernacular_all as(
-		select v_lookup.id_taxa_obs, taxa_vernacular.*
+		select v_lookup.id_taxa_obs, taxa_vernacular.*, source_priority
 		from taxa_obs_vernacular_lookup v_lookup
 		left join taxa_vernacular on v_lookup.id_taxa_vernacular = taxa_vernacular.id
+		JOIN api.taxa_vernacular_sources USING (source_name)
 		where match_type is not null
+		order by v_lookup.id_taxa_obs, source_priority
 	), best_vernacular as (
 		select
 			ver_en.id_taxa_obs,
 			ver_en.name as vernacular_en,
 			ver_fr.name as vernacular_fr
-		from (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'eng') as ver_en
-		left join (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'fra') as ver_fr
+		from (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'eng' order by id_taxa_obs, source_priority NULLS LAST) as ver_en
+		left join (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'fra' order by id_taxa_obs, source_priority NULLS LAST) as ver_fr
 			on ver_en.id_taxa_obs = ver_fr.id_taxa_obs
 	), vernacular_group as (
 		select 
