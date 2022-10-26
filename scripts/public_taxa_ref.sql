@@ -157,11 +157,16 @@ CREATE INDEX IF NOT EXISTS scientific_name_idx
 
     CREATE OR REPLACE FUNCTION trigger_insert_taxa_ref_from_taxa_obs()
     RETURNS TRIGGER AS $$
+    -- ON ERROR, WARN 'Error in trigger_insert_taxa_ref_from_taxa_obs', NEW.id, NEW.scientific_name;
     BEGIN
         PERFORM public.insert_taxa_ref_from_taxa_obs(
             NEW.id, NEW.scientific_name
             );
         RETURN NEW;
+    EXCEPTION
+        WHEN OTHERS THEN
+            RAISE NOTICE 'Error in trigger_insert_taxa_ref_from_taxa_obs : id_taxa_obs = %s, scientific_name = %s, ...continuing ...', NEW.id, NEW.scientific_name;
+            RETURN NEW;
     END;
     $$ LANGUAGE 'plpgsql';
 

@@ -30,10 +30,10 @@ Example. Insert rows in `obs_species` related to taxa attributes
 #### Process summary
 
 * User : Inject raw species observation rows in `TABLE obs_species`
-* User : Auto : Trigger `as` is called on inject in `TABLE taxa_obs`
-  * Row in `TABLE taxa_obs` is injected from `taxa_name` in 
-  * Field `id_tax_obs` in `TABLE obs_species` in injected row is updated before injection
-  * `FUNCTION something` is called to obtain related reference taxonomy entries (synonyms, parents)
+* Auto : Trigger is called on inject.
+  * Row in `TABLE taxa_obs` is injected from `taxa_name` in `obs_species`
+  * Field `id_tax_obs` in `TABLE obs_species` is updated before injection
+  * `FUNCTION match_taxa_sources(taxa_name)` is called to obtain related reference taxonomy entries (synonyms, parents)
   * Reference taxonomic entries are injected into `TABLE taxa_ref`
   * Correspondence between raw observed taxon and related reference taxons are injected into `TABLE taxa_obs_ref_lookup`
 
@@ -41,11 +41,9 @@ Example. Insert rows in `obs_species` related to taxa attributes
 #### SQL Command
 
 ```postgresql
-INSERT INTO taxa_obs ()
-VALUES ()
+INSERT INTO obs_species (taxa_name, variable, value, observation_id)
+VALUES (...)
 ```
-
-* [ ] Change, obs-species already contains raw name
 
 ### List species related to observations
 
