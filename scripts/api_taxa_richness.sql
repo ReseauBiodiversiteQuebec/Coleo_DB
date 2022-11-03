@@ -25,6 +25,17 @@ $$ LANGUAGE sql;
 
 SELECT api.taxa_branch_tips(ARRAY[6065, 6007, 6636, 6619]);
 
+-- This function is used by the api.taxa_richness function to compute the number of
+-- unique taxa observed for edna surveys
+CREATE VIEW obs_edna_likely as
+SELECT obs_edna.*
+FROM campaigns, observations, obs_edna
+WHERE campaigns.type = 'ADNe'
+	AND observations.campaign_id = campaigns.id
+	AND obs_edna.observation_id = observations.id
+	AND trim(replace(extra::text, '\"', '"'), '"')::jsonb -> 'échelle_spatiale' ->> 'value' = 'lac'
+    AND obs_edna.type_edna IN ('confirmé', 'probable');
+
 -- CREATE FUNCTION api.taxa_richness that returns a table with the number of unique taxa observed
 -- based on the tip-of-the-branch method
 
@@ -72,9 +83,8 @@ BEGIN
                 WHERE id_taxa_obs IS NOT NULL
             UNION
             SELECT id_taxa_obs, sequence_count as value, observation_id
-                FROM obs_edna
+                FROM obs_edna_likely
                 WHERE id_taxa_obs IS NOT NULL
-                AND type_edna::text = ANY(ARRAY[''confirmé'', ''probable''])
         ), joined_obs AS (
             SELECT
                 obs_taxa.id_taxa_obs,

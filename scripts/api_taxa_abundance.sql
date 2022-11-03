@@ -52,9 +52,8 @@ BEGIN
                 WHERE id_taxa_obs IS NOT NULL
             UNION
             SELECT id_taxa_obs, sequence_count as value, observation_id
-                FROM obs_edna
+                FROM obs_edna_likely
                 WHERE id_taxa_obs IS NOT NULL
-                AND type_edna::text = ANY(ARRAY[''confirmé'', ''probable''])
         ), joined_obs AS (
             SELECT
                 obs_taxa.id_taxa_obs,
