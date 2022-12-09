@@ -255,11 +255,12 @@ Cette table est la table principale qui contient les informations communes à to
 
 **Inclus dans le résultat**: attributes, ref_species
 
-| Champs             | Type           | Description                                   | Options |
-| ------------------ | -------------- | --------------------------------------------- | ------- |
-| **taxa_name**      | texte          | Nom complet de l'espèce observée              |         |
-| **variable**       | texte          | Référence vers la table d'attributs           |         |
-| value              | nombre décimal | Valeur de l'attribut                          |         |
+| Champs             | Type           | Description                                        | Options |
+| ------------------ | -------------- | -------------------------------------------------- | ------- |
+| **taxa_name**      | texte          | Nom complet de l'espèce observée                   |         |
+| **variable**       | texte          | Référence vers la table d'attributs                |         |
+| value              | nombre décimal | Valeur de l'attribut                               |         |
+| value_string       | texte          | Valeur de l'attribut pour les campagnes végétation |         |
 | **observation_id** | nombre entier  | Identifiant unique de la table d'observations |
 
 ---
