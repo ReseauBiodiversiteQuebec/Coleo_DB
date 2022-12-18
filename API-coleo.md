@@ -247,6 +247,36 @@ Cette table est la table principale qui contient les informations communes à to
 
 ---
 
+## Correspondance observation-effort
+
+**Nom de la table** : observations_efforts_lookup
+
+**Point d'accès** : /api/v1/observations_efforts_lookup
+
+**Inclus dans le résultat**: observations, efforts
+
+| Champs             | Type           | Description                                        | Options |
+| ------------------ | -------------- | -------------------------------------------------- | ------- |
+| **observation_id** | texte          | Numéro d'identification de l'observation           |         |
+| **effort_id**      | texte          | Numéro d'identification de l'effort                |         |
+
+---
+
+## Correspondance observation-repère
+
+**Nom de la table** : observations_landmarks_lookup
+
+**Point d'accès** : /api/v1/observations_landmarks_lookup
+
+**Inclus dans le résultat**: observations, landmarks
+
+| Champs             | Type           | Description                                        | Options |
+| ------------------ | -------------- | -------------------------------------------------- | ------- |
+| **observation_id** | texte          | Numéro d'identification de l'observation           |         |
+| **landmark_id**    | texte          | Numéro d'identification du repère                  |         |
+
+---
+
 ## Observations d'espèces
 
 **Nom de la table** : obs_species
