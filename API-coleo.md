@@ -369,6 +369,33 @@ Note: Le format des observations d'ADN environnemental est différent des autres
 
 ---
 
+
+## Observations des condtitions physico-chimiques en lac
+
+**Nom de la table** : obs_lake
+
+**Point d'accès** : /api/v1/obs_lake
+
+| Champs                   | Type           | Description                                       | Options                                             |
+| ------------------------ | -------------- | ------------------------------------------------- | --------------------------------------------------- |
+| **observation_id**       | nombre entier  | Numéro de l'observation dans la table observation |                                                     |
+| water_transparency       | nombre décimal | Transparence dans la colonne d'eau exprimée en mètres à l'aide d'un disque de Secchi |                  |
+| water_temp               | nombre décimal | Température de l'eau en degrés Celsius            |                                                     |
+| oxygen_concentration     | nombre décimal | Concentration de l'oxygène dans l'eau (mg/L)      |                                                     |
+| ph                       | nombre décimal | Mesure du pH de l'eau                             |                                                     |     
+| conductivity             | nombre décimal | Conductivité de l'eau en mètres/seconde (m/s)     |                                                     |
+| turbidity                | nombre décimal | Turbidité de l'eau en unités de turbidité néphalométriques (uNT) |                                      |
+| dissolved_organic_carbon | nombre décimal | Carbone organique dissous (filtré 0,45 µm)        |                                                     |
+| ammonia_nitrogen         | nombre décimal | Azote ammonical (filtré ou non)                   |                                                     |
+| nitrates_and_nitrites    | nombre décimal | Nitrates et nitrites (filtré ou non)              |                                                     |
+| total_nitrogen           | nombre décimal | Azote total (filtré ou non)                       |                                                     |
+| total_phosphorus         | nombre décimal | Phosphore total en trace lac 660 nm ou 660 nm verre |                                                   |
+| chlorophyl_a             | nombre décimal | Chlorophyle A active                              |                                                     |
+| pheophytin_a             | nombre décimal | Phéophytine A                                     |                                                     |
+| notes                    | Texte          | Notes                                             |                                                     |
+
+---
+
 ## Observations de profil du sol
 
 **Nom de la table** : obs_soil
