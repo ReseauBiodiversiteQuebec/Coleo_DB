@@ -200,7 +200,7 @@ Les champs en gras sont obligatoires
 
 ## Thermographes
 
-Cette table est utilisée pour faire la liste de thermographes pour la température de l'eau et du sol, ainsi que les appareils de profondeur d'eau et température utilisée dans les marais. Cette table est liée et à la table des repères et à la table des observations, puisqu'il peut y avoir plusieurs thermographes à un même endroit, et des milliers d'observations pour un même thermographe.
+Cette table est utilisée pour faire la liste de thermographes pour la température de l'eau et du sol, ainsi que les appareils de profondeur d'eau et température utilisée dans les marais. Cette table est liée et à la table des repères et à la table des obs_thermograph, puisqu'il peut y avoir plusieurs thermographes à un même endroit, et des milliers d'observations pour un même thermographe.
 
 **Nom de la table** : thermographs
 
@@ -429,17 +429,20 @@ Note: Le format des observations d'ADN environnemental est différent des autres
 
 ---
 
-## Observations de température et de pression.
+## Observations de thermographes
 
 **Nom de la table** : obs_thermograph
 
 **Point d'accès** : /api/v1/obs_thermograph
 
-| Champs             | Type           | Description                                       | Options |
-| ------------------ | -------------- | ------------------------------------------------- | ------- |
-| **observation_id** | nombre entier  | Numéro de l'observation dans la table observation |         |
-| temperature        | nombre décimal | Température (C)                                   |         |
-| pressure           | nombre décimal | Pression (psi)                                    |         |
+| Champs             | Type           | Description                                                      | Options |
+| ------------------ | -------------- | ---------------------------------------------------------------- | ------- |
+| **campaign_id**    | nombre entier  | Numéro de la campagne dans la table campaigns                    |         |
+| thermograph_id     | nombre entier  | Numéro du thermographe dans la table thermographs                |         |
+| temperature        | nombre décimal | Température (C)                                                  |         |
+| pressure           | nombre décimal | Pression (psi)                                                   |         |
+| **date_obs**       | date           | Date d'observation à l'intérieur de la campagne d'inventaire     |         |
+| time_obs           | heure HH:mm:ss | Heure de l'observation à l'intérieur de la campagne d'inventaire |         |
 
 ---
 
