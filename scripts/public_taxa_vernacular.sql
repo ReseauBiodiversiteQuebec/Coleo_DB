@@ -16,6 +16,16 @@ CREATE TABLE public.taxa_vernacular (
     UNIQUE (source_name, source_record_id, language)
 );
 
+CREATE INDEX IF NOT EXISTS taxa_vernacular_source_name_idx
+  ON public.taxa_vernacular (source_name);
+
+CREATE INDEX IF NOT EXISTS taxa_vernacular_source_record_id_idx
+    ON public.taxa_vernacular (source_record_id);
+
+CREATE INDEX IF NOT EXISTS taxa_vernacular_language_idx
+    ON public.taxa_vernacular (language);
+
+
 -- DROP TRIGGER IF EXISTS update_modified_at ON public.taxa_vernacular;
 -- CREATE TRIGGER update_modified_at
 --   BEFORE UPDATE ON public.taxa_vernacular FOR EACH ROW
@@ -30,6 +40,7 @@ CREATE TABLE IF NOT EXISTS public.taxa_obs_vernacular_lookup (
     id_taxa_obs integer NOT NULL,
     id_taxa_vernacular integer NOT NULL,
     match_type text,
+    rank_order integer not null default 0,
     UNIQUE (id_taxa_obs, id_taxa_vernacular)
 );
 
@@ -40,12 +51,12 @@ CREATE INDEX IF NOT EXISTS id_taxa_vernacular_idx
   ON public.taxa_obs_vernacular_lookup (id_taxa_vernacular);
 
 -- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
--- % FUNCTION taxa_vernacular_from_sources
+-- % FUNCTION taxa_vernacular_from_names
 -- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-DROP FUNCTION IF EXISTS public.taxa_vernacular_from_sources(text);
-CREATE FUNCTION public.taxa_vernacular_from_sources(
-    scientific_name text)
+DROP FUNCTION IF EXISTS public.taxa_vernacular_from_match(text);
+CREATE OR REPLACE FUNCTION public.taxa_vernacular_from_match(
+    observed_scientific_name text)
 RETURNS TABLE (
     source text,
     source_taxon_key text,
@@ -55,12 +66,12 @@ RETURNS TABLE (
 LANGUAGE plpython3u
 AS $function$
 from bdqc_taxa.vernacular import Vernacular
-out = Vernacular.from_gbif_match(scientific_name)
+out = Vernacular.from_match(observed_scientific_name)
 return out
 $function$;
 
 -- TEST
--- explain analyze select * from public.taxa_vernacular_from_sources('Picoides villosus');
+-- explain analyze select * from public.taxa_vernacular_from_match('Picoides villosus');
 
 DROP FUNCTION IF EXISTS public.taxa_vernacular_from_gbif(text);
 CREATE FUNCTION public.taxa_vernacular_from_gbif(
@@ -85,7 +96,7 @@ $function$;
 -- % FUNCTION insert_taxa_vernacular_from_obs
 -- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-DROP FUNCTION IF EXISTS insert_taxa_vernacular_from_obs(integer) CASCADE;
+-- DROP FUNCTION IF EXISTS insert_taxa_vernacular_from_obs(integer) CASCADE;
 CREATE OR REPLACE FUNCTION insert_taxa_vernacular_from_obs(
     ins_taxa_obs_id integer
 )
@@ -94,42 +105,67 @@ $BODY$
 BEGIN
     WITH gbif_ref as (
         select
-            distinct on (gbif_ref.id)
-            gbif_lookup.id_taxa_obs,
-            gbif_ref.source_record_id,
-            gbif_lookup.match_type,
-            gbif_ref.scientific_name
-        from taxa_obs_ref_lookup gbif_lookup
-        left join taxa_ref gbif_ref on gbif_lookup.id_taxa_ref = gbif_ref.id
-        where gbif_lookup.id_taxa_obs = ins_taxa_obs_id
+            taxa_obs.scientific_name as observed_scientific_name,
+            gbif_ref.scientific_name,
+            gbif_ref.source_record_id as gbif_taxon_key,
+            array_length(gbif_ref.classification_srids, 1) as rank_order,
+            ref_lu.match_type,
+            ref_lu.is_parent
+        from taxa_obs,
+            taxa_obs_ref_lookup ref_lu,
+            taxa_ref gbif_ref
+        where taxa_obs.id = ins_taxa_obs_id
+            and ref_lu.id_taxa_obs = taxa_obs.id
+            and ref_lu.id_taxa_ref = gbif_ref.id
             and gbif_ref.source_name = 'GBIF Backbone Taxonomy'
+    ), vernacular_sources as (
+        -- UNION FROM GBIF PARENTS AND MATCHES
+        select
+            match.source,
+            match.source_taxon_key,
+            match.name,
+            match.language,
+            coalesce(gbif_ref.match_type, 'parent') as match_type,
+            gbif_ref.rank_order
+        from
+            gbif_ref,
+            public.taxa_vernacular_from_gbif(gbif_ref.gbif_taxon_key) match
+        where gbif_ref.is_parent = true
+        UNION
+        select
+            match.source,
+            match.source_taxon_key,
+            match.name,
+            match.language,
+            gbif_ref.match_type as match_type,
+            gbif_ref.rank_order
+        from
+            gbif_ref,
+            public.taxa_vernacular_from_match(gbif_ref.observed_scientific_name) match
+        where gbif_ref.is_parent = false
     ), temp_vernacular as (
         select
-            match.*,
-            gbif_ref.match_type,
-            taxa_vernacular.id as id_taxa_vernacular,
-            gbif_ref.source_record_id as gbif_taxon_key
+            vernacular_sources.*,
+            taxa_vernacular.id as id_taxa_vernacular
         from 
-            gbif_ref,
-            public.taxa_vernacular_from_gbif(gbif_ref.source_record_id) match
+            vernacular_sources
         left join taxa_vernacular
-            on match.source = taxa_vernacular.source_name
-            and match.source_taxon_key = taxa_vernacular.source_record_id
-            and match.language = taxa_vernacular.language
-        where match.source is not null -- where a match is found
+            on vernacular_sources.source = taxa_vernacular.source_name
+            and vernacular_sources.source_taxon_key = taxa_vernacular.source_record_id
+            and vernacular_sources.language = taxa_vernacular.language
+        where vernacular_sources.source is not null -- where a match is found
     ), new_vernacular as (
         INSERT INTO public.taxa_vernacular (
             source_name,
             source_record_id,
             name,
-            language,
-            gbif_taxon_key)
+            language
+        )
         SELECT
             source,
             source_taxon_key,
             name,
-            language,
-            gbif_taxon_key
+            language
         FROM temp_vernacular
         ON CONFLICT DO NOTHING
         RETURNING
@@ -138,33 +174,41 @@ BEGIN
         (
             SELECT
                 new_vernacular.id_taxa_vernacular,
-                temp_vernacular.match_type
+                temp_vernacular.match_type,
+                temp_vernacular.rank_order
             from new_vernacular
             left join temp_vernacular
                 on new_vernacular.source_name = temp_vernacular.source
                 and new_vernacular.source_record_id = temp_vernacular.source_taxon_key
                 and new_vernacular.language = temp_vernacular.language
         ) UNION (
-            SELECT id_taxa_vernacular, match_type from temp_vernacular
+            SELECT id_taxa_vernacular, match_type, rank_order from temp_vernacular
             where id_taxa_vernacular is not null
         )
     )
-    INSERT INTO public.taxa_obs_vernacular_lookup
+    INSERT INTO public.taxa_obs_vernacular_lookup (
+        id_taxa_obs,
+        id_taxa_vernacular,
+        match_type,
+        rank_order
+    )
     SELECT
-        ins_taxa_obs_id as id_taxa_obs, id_taxa_vernacular, match_type
+        ins_taxa_obs_id as id_taxa_obs, id_taxa_vernacular, match_type, rank_order
     FROM temp_lookup
     ON CONFLICT DO NOTHING;
 END;
 $BODY$
 LANGUAGE 'plpgsql';
 
--- select insert_taxa_vernacular_from_obs(2072);
+select insert_taxa_ref_from_taxa_obs(2372, 'Myotis lucifugus|Myotis septentrionalis|Myotis leibii');
+
+select insert_taxa_vernacular_from_obs(2372);
 
 ------------------------------------------------------------------------
 -- FUNCTION refresh_taxa_vernacular
 ------------------------------------------------------------------------
 
--- DROP FUNCTION IF EXISTS refresh_taxa_vernacular() CASCADE;
+-- DROP FUNCTION IF EXISTS refresh_taxa_vernacular() CASCADE
 CREATE OR REPLACE FUNCTION refresh_taxa_vernacular()
 RETURNS void AS
 $$

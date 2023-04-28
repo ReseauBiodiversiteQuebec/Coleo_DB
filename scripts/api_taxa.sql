@@ -86,19 +86,19 @@ CREATE OR REPLACE VIEW api.taxa AS (
 		left join taxa_groups on group_lookup.id_group = taxa_groups.id
 		where taxa_groups.level = 1
 	), vernacular_all as(
-		select v_lookup.id_taxa_obs, taxa_vernacular.*, source_priority
+		select v_lookup.id_taxa_obs, taxa_vernacular.*, source_priority, match_type, rank_order
 		from taxa_obs_vernacular_lookup v_lookup
 		left join taxa_vernacular on v_lookup.id_taxa_vernacular = taxa_vernacular.id
 		JOIN api.taxa_vernacular_sources USING (source_name)
-		where match_type is not null
-		order by v_lookup.id_taxa_obs, source_priority
+		where match_type is not null and match_type <> 'complex'
+		order by v_lookup.id_taxa_obs, match_type, source_priority, rank_order desc
 	), best_vernacular as (
 		select
 			ver_en.id_taxa_obs,
 			ver_en.name as vernacular_en,
 			ver_fr.name as vernacular_fr
-		from (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'eng' order by id_taxa_obs, source_priority NULLS LAST) as ver_en
-		left join (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'fra' order by id_taxa_obs, source_priority NULLS LAST) as ver_fr
+		from (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'eng')  as ver_en
+		left join (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'fra') as ver_fr
 			on ver_en.id_taxa_obs = ver_fr.id_taxa_obs
 	), vernacular_group as (
 		select 
