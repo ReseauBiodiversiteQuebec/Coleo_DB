@@ -200,7 +200,7 @@ Les champs en gras sont obligatoires
 
 ## Thermographes
 
-Cette table est utilisée pour faire la liste de thermographes pour la température de l'eau et du sol, ainsi que les appareils de profondeur d'eau et température utilisée dans les marais. Cette table est liée et à la table des repères et à la table des observations, puisqu'il peut y avoir plusieurs thermographes à un même endroit, et des milliers d'observations pour un même thermographe.
+Cette table est utilisée pour faire la liste de thermographes pour la température de l'eau et du sol, ainsi que les appareils de profondeur d'eau et température utilisée dans les marais. Cette table est liée et à la table des repères et à la table des obs_thermograph, puisqu'il peut y avoir plusieurs thermographes à un même endroit, et des milliers d'observations pour un même thermographe.
 
 **Nom de la table** : thermographs
 
@@ -247,6 +247,36 @@ Cette table est la table principale qui contient les informations communes à to
 
 ---
 
+## Correspondance observation-effort
+
+**Nom de la table** : observations_efforts_lookup
+
+**Point d'accès** : /api/v1/observations_efforts_lookup
+
+**Inclus dans le résultat**: observations, efforts
+
+| Champs             | Type           | Description                                        | Options |
+| ------------------ | -------------- | -------------------------------------------------- | ------- |
+| **observation_id** | texte          | Numéro d'identification de l'observation           |         |
+| **effort_id**      | texte          | Numéro d'identification de l'effort                |         |
+
+---
+
+## Correspondance observation-repère
+
+**Nom de la table** : observations_landmarks_lookup
+
+**Point d'accès** : /api/v1/observations_landmarks_lookup
+
+**Inclus dans le résultat**: observations, landmarks
+
+| Champs             | Type           | Description                                        | Options |
+| ------------------ | -------------- | -------------------------------------------------- | ------- |
+| **observation_id** | texte          | Numéro d'identification de l'observation           |         |
+| **landmark_id**    | texte          | Numéro d'identification du repère                  |         |
+
+---
+
 ## Observations d'espèces
 
 **Nom de la table** : obs_species
@@ -255,11 +285,12 @@ Cette table est la table principale qui contient les informations communes à to
 
 **Inclus dans le résultat**: attributes, ref_species
 
-| Champs             | Type           | Description                                   | Options |
-| ------------------ | -------------- | --------------------------------------------- | ------- |
-| **taxa_name**      | texte          | Nom complet de l'espèce observée              |         |
-| **variable**       | texte          | Référence vers la table d'attributs           |         |
-| value              | nombre décimal | Valeur de l'attribut                          |         |
+| Champs             | Type           | Description                                        | Options |
+| ------------------ | -------------- | -------------------------------------------------- | ------- |
+| **taxa_name**      | texte          | Nom complet de l'espèce observée                   |         |
+| **variable**       | texte          | Référence vers la table d'attributs                |         |
+| value              | nombre décimal | Valeur de l'attribut                               |         |
+| value_string       | texte          | Valeur de l'attribut pour les campagnes végétation |         |
 | **observation_id** | nombre entier  | Identifiant unique de la table d'observations |
 
 ---
@@ -338,6 +369,33 @@ Note: Le format des observations d'ADN environnemental est différent des autres
 
 ---
 
+
+## Observations des condtitions physico-chimiques en lac
+
+**Nom de la table** : obs_lake
+
+**Point d'accès** : /api/v1/obs_lake
+
+| Champs                   | Type           | Description                                       | Options                                             |
+| ------------------------ | -------------- | ------------------------------------------------- | --------------------------------------------------- |
+| **observation_id**       | nombre entier  | Numéro de l'observation dans la table observation |                                                     |
+| water_transparency       | nombre décimal | Transparence dans la colonne d'eau exprimée en mètres à l'aide d'un disque de Secchi |                  |
+| water_temp               | nombre décimal | Température de l'eau en degrés Celsius            |                                                     |
+| oxygen_concentration     | nombre décimal | Concentration de l'oxygène dans l'eau (mg/L)      |                                                     |
+| ph                       | nombre décimal | Mesure du pH de l'eau                             |                                                     |     
+| conductivity             | nombre décimal | Conductivité de l'eau en mètres/seconde (m/s)     |                                                     |
+| turbidity                | nombre décimal | Turbidité de l'eau en unités de turbidité néphalométriques (uNT) |                                      |
+| dissolved_organic_carbon | nombre décimal | Carbone organique dissous (filtré 0,45 µm)        |                                                     |
+| ammonia_nitrogen         | nombre décimal | Azote ammonical (filtré ou non)                   |                                                     |
+| nitrates_and_nitrites    | nombre décimal | Nitrates et nitrites (filtré ou non)              |                                                     |
+| total_nitrogen           | nombre décimal | Azote total (filtré ou non)                       |                                                     |
+| total_phosphorus         | nombre décimal | Phosphore total en trace lac 660 nm ou 660 nm verre |                                                   |
+| chlorophyl_a             | nombre décimal | Chlorophyle A active                              |                                                     |
+| pheophytin_a             | nombre décimal | Phéophytine A                                     |                                                     |
+| notes                    | Texte          | Notes                                             |                                                     |
+
+---
+
 ## Observations de profil du sol
 
 **Nom de la table** : obs_soil
@@ -371,17 +429,20 @@ Note: Le format des observations d'ADN environnemental est différent des autres
 
 ---
 
-## Observations de température et de pression.
+## Observations de thermographes
 
 **Nom de la table** : obs_thermograph
 
 **Point d'accès** : /api/v1/obs_thermograph
 
-| Champs             | Type           | Description                                       | Options |
-| ------------------ | -------------- | ------------------------------------------------- | ------- |
-| **observation_id** | nombre entier  | Numéro de l'observation dans la table observation |         |
-| temperature        | nombre décimal | Température (C)                                   |         |
-| pressure           | nombre décimal | Pression (psi)                                    |         |
+| Champs             | Type           | Description                                                      | Options |
+| ------------------ | -------------- | ---------------------------------------------------------------- | ------- |
+| **campaign_id**    | nombre entier  | Numéro de la campagne dans la table campaigns                    |         |
+| thermograph_id     | nombre entier  | Numéro du thermographe dans la table thermographs                |         |
+| temperature        | nombre décimal | Température (C)                                                  |         |
+| pressure           | nombre décimal | Pression (psi)                                                   |         |
+| **date_obs**       | date           | Date d'observation à l'intérieur de la campagne d'inventaire     |         |
+| time_obs           | heure HH:mm:ss | Heure de l'observation à l'intérieur de la campagne d'inventaire |         |
 
 ---
 

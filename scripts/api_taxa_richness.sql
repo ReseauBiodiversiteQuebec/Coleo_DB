@@ -7,22 +7,34 @@
 CREATE OR REPLACE FUNCTION api.taxa_branch_tips (
     taxa_obs_ids integer[]
 ) RETURNS table (id_taxa_obs integer) AS $$
-WITH ref_valid_tips AS (
-	select
-		id_taxa_ref_valid id_taxa_ref,
-		bool_or(is_parent) is_parent
-	from taxa_obs_ref_lookup obs_lookup
-	WHERE (match_type != 'complex' or match_type is null)
-		AND obs_lookup.id_taxa_obs = any(taxa_obs_ids)
-	group by id_taxa_ref_valid
-)
-SELECT distinct id_taxa_obs
-FROM ref_valid_tips
-JOIN taxa_obs_ref_lookup USING (id_taxa_ref, is_parent)
-WHERE is_parent is not true
+    WITH ref_tips AS (
+		select
+			id_taxa_ref_valid,
+			bool_and( coalesce(match_type = 'complex_closest_parent' or is_parent is false, false)) is_tip,
+			array_agg(distinct(id_taxa_obs)) id_taxa_obs,
+			count(id_taxa_ref_valid) count_taxa_ref
+		from taxa_obs_ref_lookup obs_lookup
+		WHERE obs_lookup.id_taxa_obs = any(taxa_obs_ids)
+			and (match_type != 'complex' or match_type is null)
+		group by id_taxa_ref_valid)
+		select distinct(unnest(id_taxa_obs)) id
+		from ref_tips
+		where is_tip is true
+
 $$ LANGUAGE sql;
 
 SELECT api.taxa_branch_tips(ARRAY[6065, 6007, 6636, 6619]);
+
+-- This function is used by the api.taxa_richness function to compute the number of
+-- unique taxa observed for edna surveys
+CREATE OR REPLACE VIEW obs_edna_likely as
+SELECT obs_edna.*
+FROM campaigns, observations, obs_edna
+WHERE campaigns.type = 'ADNe'
+	AND observations.campaign_id = campaigns.id
+	AND obs_edna.observation_id = observations.id
+	AND trim(replace(extra::text, '\"', '"'), '"')::jsonb -> 'échelle_spatiale' ->> 'value' = 'lac'
+    AND obs_edna.type_edna IN ('confirmé');
 
 -- CREATE FUNCTION api.taxa_richness that returns a table with the number of unique taxa observed
 -- based on the tip-of-the-branch method
@@ -71,9 +83,8 @@ BEGIN
                 WHERE id_taxa_obs IS NOT NULL
             UNION
             SELECT id_taxa_obs, sequence_count as value, observation_id
-                FROM obs_edna
+                FROM obs_edna_likely
                 WHERE id_taxa_obs IS NOT NULL
-                AND type_edna::text = ANY(ARRAY[''confirmé'', ''probable''])
         ), joined_obs AS (
             SELECT
                 obs_taxa.id_taxa_obs,
