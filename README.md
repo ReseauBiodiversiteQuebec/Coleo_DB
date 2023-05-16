@@ -8,7 +8,7 @@ Returns a table with the sum of observation values from `obs_species` and `obs_e
 
 All parameters are optionals and can be used in any combination. If no parameter is specified, the function will return the total abundance.
 
-**FUNCTION** `api.taxa_abundance_year
+**FUNCTION** `api.taxa_abundance_year`
 
 Returns the same table, expect the abundance is returned for each year of the campaigns. 
 
@@ -18,6 +18,6 @@ Returns a table with the number of validated and unique taxa, based on the tip o
 
 All parameters are optionals and can be used in any combination. If no parameter is specified, the function will return the total richness.
 
-**FUNCTION** `api.taxa_richness_year
+**FUNCTION** `api.taxa_richness_year`
 
 Returns the same table, expect the richness is returned for each year of the campaigns. 
