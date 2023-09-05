@@ -86,10 +86,10 @@ CREATE OR REPLACE VIEW api.taxa AS (
 		left join taxa_groups on group_lookup.id_group = taxa_groups.id
 		where taxa_groups.level = 1
 	), vernacular_all as(
-		select v_lookup.id_taxa_obs, taxa_vernacular.*, source_priority, match_type, rank_order
+		select v_lookup.id_taxa_obs, taxa_vernacular.*, source_priority, match_type, coalesce(rank_order, 9999) rank_order
 		from taxa_obs_vernacular_lookup v_lookup
 		left join taxa_vernacular on v_lookup.id_taxa_vernacular = taxa_vernacular.id
-		JOIN api.taxa_vernacular_sources USING (source_name)
+		LEFT JOIN api.taxa_vernacular_sources USING (source_name)
 		where match_type is not null and match_type <> 'complex'
 		order by v_lookup.id_taxa_obs, match_type, source_priority, rank_order desc
 	), best_vernacular as (
