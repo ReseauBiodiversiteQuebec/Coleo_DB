@@ -87,6 +87,28 @@ CREATE INDEX IF NOT EXISTS scientific_name_idx
     CREATE INDEX IF NOT EXISTS id_taxa_ref_valid_idx
     ON public.taxa_obs_ref_lookup (id_taxa_ref_valid);
 
+    -- Foreign key constraints
+
+    -- ALTER TABLE public.taxa_obs_ref_lookup
+    --     DROP CONSTRAINT IF EXISTS taxa_obs_ref_lookup_id_taxa_obs_fkey;
+
+    ALTER TABLE public.taxa_obs_ref_lookup
+        ADD CONSTRAINT taxa_obs_ref_lookup_id_taxa_obs_fkey
+        FOREIGN KEY (id_taxa_obs)
+        REFERENCES public.taxa_obs (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE;
+
+    -- ALTER TABLE public.taxa_obs_ref_lookup
+    --     DROP CONSTRAINT IF EXISTS taxa_obs_ref_lookup_id_taxa_ref_fkey;
+
+    ALTER TABLE public.taxa_obs_ref_lookup
+        ADD CONSTRAINT taxa_obs_ref_lookup_id_taxa_ref_fkey
+        FOREIGN KEY (id_taxa_ref)
+        REFERENCES public.taxa_ref (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE;
+
 -------------------------------------------------------------------------------
 -- CREATE FUNCTIONS AND TRIGGER to update taxa_ref on taxa_obs on insert
 -------------------------------------------------------------------------------
@@ -151,30 +173,6 @@ CREATE INDEX IF NOT EXISTS scientific_name_idx
     END;
     $BODY$
     LANGUAGE 'plpgsql';
-
-
-    -- CREATE the trigger for taxa_ref insertion:
-
-    CREATE OR REPLACE FUNCTION trigger_insert_taxa_ref_from_taxa_obs()
-    RETURNS TRIGGER AS $$
-    -- ON ERROR, WARN 'Error in trigger_insert_taxa_ref_from_taxa_obs', NEW.id, NEW.scientific_name;
-    BEGIN
-        PERFORM public.insert_taxa_ref_from_taxa_obs(
-            NEW.id, NEW.scientific_name
-            );
-        RETURN NEW;
-    EXCEPTION
-        WHEN OTHERS THEN
-            RAISE NOTICE 'Error in trigger_insert_taxa_ref_from_taxa_obs : id_taxa_obs = %s, scientific_name = %s, ...continuing ...', NEW.id, NEW.scientific_name;
-            RETURN NEW;
-    END;
-    $$ LANGUAGE 'plpgsql';
-
-    DROP TRIGGER IF EXISTS insert_taxa_ref ON public.taxa_obs;
-    CREATE TRIGGER insert_taxa_ref
-        AFTER INSERT ON public.taxa_obs
-        FOR EACH ROW
-        EXECUTE PROCEDURE trigger_insert_taxa_ref_from_taxa_obs();
 
 -------------------------------------------------------------------------------
 -- REFRESH taxa_ref and taxa_obs_ref_lookup

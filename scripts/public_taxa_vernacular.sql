@@ -93,11 +93,11 @@ $function$;
 
 
 -- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
--- % FUNCTION insert_taxa_vernacular_from_obs
+-- % FUNCTION insert_taxa_vernacular_from_taxa_obs
 -- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--- DROP FUNCTION IF EXISTS insert_taxa_vernacular_from_obs(integer) CASCADE;
-CREATE OR REPLACE FUNCTION insert_taxa_vernacular_from_obs(
+-- DROP FUNCTION IF EXISTS insert_taxa_vernacular_from_taxa_obs(integer) CASCADE;
+CREATE OR REPLACE FUNCTION insert_taxa_vernacular_from_taxa_obs(
     ins_taxa_obs_id integer
 )
 RETURNS void AS
@@ -200,9 +200,9 @@ END;
 $BODY$
 LANGUAGE 'plpgsql';
 
-select insert_taxa_ref_from_taxa_obs(2372, 'Myotis lucifugus|Myotis septentrionalis|Myotis leibii');
+-- select insert_taxa_ref_from_taxa_obs(2372, 'Myotis lucifugus|Myotis septentrionalis|Myotis leibii');
 
-select insert_taxa_vernacular_from_obs(2372);
+-- select insert_taxa_vernacular_from_taxa_obs(2372);
 
 ------------------------------------------------------------------------
 -- FUNCTION refresh_taxa_vernacular
@@ -230,7 +230,7 @@ $$
 BEGIN
     DELETE FROM taxa_obs_vernacular_lookup;
     DELETE FROM taxa_vernacular;
-    PERFORM insert_taxa_vernacular_from_obs(id) FROM taxa_obs;
+    PERFORM insert_taxa_vernacular_from_taxa_obs(id) FROM taxa_obs;
     PERFORM taxa_vernacular_fix_caribou();
 END;
 $$ LANGUAGE plpgsql;

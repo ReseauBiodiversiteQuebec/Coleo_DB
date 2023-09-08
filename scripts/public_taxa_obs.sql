@@ -37,6 +37,17 @@
     CREATE INDEX IF NOT EXISTS obs_species_id_taxa_obs_idx
         ON public.obs_species (id_taxa_obs);
 
+    -- ADD FOREIGN KEY CONSTRAINT
+    ALTER TABLE public.obs_species
+        DROP CONSTRAINT IF EXISTS obs_species_id_taxa_obs_fkey;
+
+    ALTER TABLE public.obs_species
+        ADD CONSTRAINT obs_species_id_taxa_obs_fkey
+        FOREIGN KEY (id_taxa_obs)
+        REFERENCES public.taxa_obs (id)
+        ON UPDATE CASCADE
+        ON DELETE NO ACTION;
+
 -------------------------------------------------------------------------------
 -- * Migrate `taxa_name` values to `taxa_obs`
 -------------------------------------------------------------------------------
@@ -113,6 +124,51 @@ UPDATE obs_species
 
     CREATE INDEX IF NOT EXISTS obs_edna_id_taxa_obs_idx
         ON public.obs_edna (id_taxa_obs);
+
+    -- ADD FOREIGN KEY CONSTRAINT
+    ALTER TABLE public.obs_edna
+        DROP CONSTRAINT IF EXISTS obs_edna_id_taxa_obs_fkey;
+
+    ALTER TABLE public.obs_edna
+        ADD CONSTRAINT obs_edna_id_taxa_obs_fkey
+        FOREIGN KEY (id_taxa_obs)
+        REFERENCES public.taxa_obs (id)
+        ON UPDATE CASCADE
+        ON DELETE NO ACTION;
+
+
+-------------------------------------------------------------------------------
+-- TEST CASE : Taxa_obs delete if only referenced by obs_edna
+-------------------------------------------------------------------------------
+
+BEGIN;
+    -- INSERT INTO taxa_obs (scientific_name)
+    --     VALUES ('Vincent Beauregard');
+
+    WITH taxa_obs AS (
+        SELECT id
+        FROM taxa_obs
+        WHERE scientific_name = 'Vincent Beauregard'
+        )
+    INSERT INTO obs_edna (taxa_name, observation_id, sequence_count, type_edna, notes, sequence_count_corrected, id_taxa_obs)
+        VALUES ('Vincent Beauregard', 162045, 11429, 'improbable', '', 11429, (SELECT id FROM taxa_obs));
+
+    -- Print number of taxa_obs
+    SELECT 'Number of taxa_obs: ', count(*) FROM taxa_obs
+    WHERE scientific_name = 'Vincent Beauregard';
+
+    DELETE FROM obs_edna WHERE taxa_name = 'Vincent Beauregard';
+
+    -- Print number of obs_edna
+    SELECT 'Number of obs_edna: ', count(*) FROM obs_edna
+    WHERE taxa_name = 'Vincent Beauregard';
+
+    -- Print number of taxa_obs
+    SELECT 'Number of taxa_obs: ', count(*) FROM taxa_obs
+    WHERE scientific_name = 'Vincent Beauregard';
+ROLLBACK;
+
+-- Assert
 
 -------------------------------------------------------------------------------
 -- CREATE FUNCTIONS AND TRIGGER to update taxa_obs on insert on obs_edna
