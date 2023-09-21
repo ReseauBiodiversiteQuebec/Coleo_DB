@@ -42,101 +42,149 @@ VALUES ('CDPNQ', 1),
 -- -----------------------------------------------------------------------------
 
 -- DROP VIEW if exists api.taxa CASCADE;
-CREATE OR REPLACE VIEW api.taxa AS (
-	with all_ref as (
-		select
-			obs_lookup.id_taxa_obs,
-			taxa_ref.scientific_name valid_scientific_name,
-			taxa_ref.rank,
-			taxa_ref.source_name,
-			source_priority,
-			taxa_ref.source_record_id source_taxon_key
-		from taxa_obs_ref_lookup obs_lookup
-		left join taxa_ref on obs_lookup.id_taxa_ref_valid = taxa_ref.id
-		JOIN api.taxa_ref_sources USING (source_id)
-		WHERE obs_lookup.match_type is not null
-			AND obs_lookup.match_type != 'complex'
-		ORDER BY obs_lookup.id_taxa_obs, source_priority
-	), agg_ref as (
-		select
-			id_taxa_obs,
-			json_agg(json_build_object(
-			   'source_name', source_name,
-			   'valid_scientific_name', valid_scientific_name,
-			   'rank', rank, 
-			   'source_taxon_key', source_taxon_key)) as source_references
-		from all_ref
-		group by (id_taxa_obs)
-	), best_ref as (
-		select
-			distinct on (id_taxa_obs)
-			id_taxa_obs,
-			valid_scientific_name,
-			rank
-		from all_ref
-		join taxa_source_priority using (source_name)
-		order by id_taxa_obs, priority asc
-	), obs_group as (
-		select
-			distinct on (group_lookup.id_taxa_obs)
-			group_lookup.id_taxa_obs,
-			coalesce(taxa_groups.vernacular_en, 'others') as group_en,
-			coalesce(taxa_groups.vernacular_fr, 'autres') as group_fr
-		from taxa_obs_group_lookup group_lookup
-		left join taxa_groups on group_lookup.id_group = taxa_groups.id
-		where taxa_groups.level = 1
-	), vernacular_all as(
-		select v_lookup.id_taxa_obs, taxa_vernacular.*, source_priority, match_type, coalesce(rank_order, 9999) rank_order
-		from taxa_obs_vernacular_lookup v_lookup
-		left join taxa_vernacular on v_lookup.id_taxa_vernacular = taxa_vernacular.id
-		LEFT JOIN api.taxa_vernacular_sources USING (source_name)
-		where match_type is not null and match_type <> 'complex'
-		order by v_lookup.id_taxa_obs, match_type, source_priority, rank_order desc
-	), best_vernacular as (
-		select
-			ver_en.id_taxa_obs,
-			ver_en.name as vernacular_en,
-			ver_fr.name as vernacular_fr
-		from (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'eng')  as ver_en
-		left join (select distinct on (id_taxa_obs) id_taxa_obs, name from vernacular_all where language = 'fra') as ver_fr
-			on ver_en.id_taxa_obs = ver_fr.id_taxa_obs
-	), vernacular_group as (
-		select 
-			vernacular_all.id_taxa_obs,
-			json_agg(json_build_object(
-				'name', vernacular_all.name,
-				'source', vernacular_all.source_name,
-				'source_taxon_key', vernacular_all.source_record_id,
-				'language', vernacular_all.language
-			)) as vernacular
-		from vernacular_all
-		group by vernacular_all.id_taxa_obs
-	)
-	select
-		best_ref.id_taxa_obs,
-        taxa_obs.scientific_name observed_scientific_name,
-		best_ref.valid_scientific_name,
-		best_ref.rank,
-		best_vernacular.vernacular_en,
-		best_vernacular.vernacular_fr,
-		obs_group.group_en,
-		obs_group.group_fr,
-		vernacular_group.vernacular,
-		agg_ref.source_references
-	from best_ref
-	left join taxa_obs on taxa_obs.id = best_ref.id_taxa_obs
-	left join vernacular_group
-		on best_ref.id_taxa_obs = vernacular_group.id_taxa_obs
-	left join obs_group
-		on best_ref.id_taxa_obs = obs_group.id_taxa_obs
-	left join best_vernacular
-		on best_ref.id_taxa_obs = best_vernacular.id_taxa_obs
-	left join agg_ref
-		on best_ref.id_taxa_obs = agg_ref.id_taxa_obs
-	ORDER BY
-		best_ref.id_taxa_obs,
-        best_vernacular.vernacular_en NULLS LAST
-);
+CREATE OR REPLACE VIEW api.taxa
+ AS
+ WITH all_ref AS (
+         SELECT obs_lookup.id_taxa_obs,
+            taxa_ref.scientific_name AS valid_scientific_name,
+            taxa_ref.rank,
+            taxa_ref.source_name,
+            taxa_ref_sources.source_priority,
+            taxa_ref.source_record_id AS source_taxon_key
+           FROM taxa_obs_ref_lookup obs_lookup
+             LEFT JOIN taxa_ref ON obs_lookup.id_taxa_ref_valid = taxa_ref.id
+             JOIN taxa_ref_sources USING (source_id)
+          WHERE obs_lookup.match_type IS NOT NULL AND obs_lookup.match_type <> 'complex'::text
+          ORDER BY obs_lookup.id_taxa_obs, taxa_ref_sources.source_priority
+        ), agg_ref AS (
+         SELECT all_ref.id_taxa_obs,
+            json_agg(json_build_object('source_name', all_ref.source_name, 'valid_scientific_name', all_ref.valid_scientific_name, 'rank', all_ref.rank, 'source_taxon_key', all_ref.source_taxon_key)) AS source_references
+           FROM all_ref
+          GROUP BY all_ref.id_taxa_obs
+        ), best_ref AS (
+         SELECT DISTINCT ON (all_ref.id_taxa_obs) all_ref.id_taxa_obs,
+            all_ref.valid_scientific_name,
+            all_ref.rank
+           FROM all_ref
+             JOIN taxa_source_priority USING (source_name)
+          ORDER BY all_ref.id_taxa_obs, taxa_source_priority.priority
+        ), obs_group AS (
+         SELECT DISTINCT ON (group_lookup.id_taxa_obs) group_lookup.id_taxa_obs,
+            COALESCE(taxa_groups.vernacular_en, 'others'::text) AS group_en,
+            COALESCE(taxa_groups.vernacular_fr, 'autres'::text) AS group_fr
+           FROM taxa_obs_group_lookup group_lookup
+             LEFT JOIN taxa_groups ON group_lookup.id_group = taxa_groups.id
+          WHERE taxa_groups.level = 1
+        ), vernacular_all AS (
+         SELECT v_lookup.id_taxa_obs,
+            taxa_vernacular.id,
+            taxa_vernacular.source_name,
+            taxa_vernacular.source_record_id,
+            taxa_vernacular.name,
+            taxa_vernacular.language,
+            taxa_vernacular.gbif_taxon_key,
+            taxa_vernacular.created_at,
+            taxa_vernacular.modified_at,
+            taxa_vernacular.modified_by,
+            COALESCE(taxa_vernacular_sources.source_priority, 9999) AS "coalesce",
+            v_lookup.match_type,
+            COALESCE(v_lookup.rank_order, 9999) AS rank_order
+           FROM taxa_obs_vernacular_lookup v_lookup
+             LEFT JOIN taxa_vernacular ON v_lookup.id_taxa_vernacular = taxa_vernacular.id
+             LEFT JOIN taxa_vernacular_sources USING (source_name)
+          WHERE v_lookup.match_type IS NOT NULL AND v_lookup.match_type <> 'complex'::text
+          ORDER BY v_lookup.id_taxa_obs, v_lookup.match_type, (COALESCE(v_lookup.rank_order, 9999)) DESC, taxa_vernacular_sources.source_priority
+        ), best_vernacular AS (
+         SELECT ver_en.id_taxa_obs,
+            ver_en.name AS vernacular_en,
+            ver_fr.name AS vernacular_fr
+           FROM ( SELECT DISTINCT ON (vernacular_all.id_taxa_obs) vernacular_all.id_taxa_obs,
+                    vernacular_all.name
+                   FROM vernacular_all
+                  WHERE vernacular_all.language = 'eng'::text) ver_en
+             LEFT JOIN ( SELECT DISTINCT ON (vernacular_all.id_taxa_obs) vernacular_all.id_taxa_obs,
+                    vernacular_all.name
+                   FROM vernacular_all
+                  WHERE vernacular_all.language = 'fra'::text) ver_fr ON ver_en.id_taxa_obs = ver_fr.id_taxa_obs
+        ), vernacular_group AS (
+         SELECT vernacular_all.id_taxa_obs,
+            json_agg(json_build_object('name', vernacular_all.name, 'source', vernacular_all.source_name, 'source_taxon_key', vernacular_all.source_record_id, 'language', vernacular_all.language)) AS vernacular
+           FROM vernacular_all
+          GROUP BY vernacular_all.id_taxa_obs
+        ), ref_rank AS (
+         SELECT DISTINCT ON (lu.id_taxa_obs, taxa_ref.rank) lu.id_taxa_obs,
+            taxa_ref.scientific_name,
+            taxa_ref.rank
+           FROM taxa_obs taxa_obs_1,
+            taxa_ref,
+            taxa_obs_ref_lookup lu,
+            taxa_ref_sources
+          WHERE lu.id_taxa_obs = taxa_obs_1.id AND taxa_ref.id = lu.id_taxa_ref_valid AND taxa_ref.source_id = taxa_ref_sources.source_id::numeric
+          ORDER BY lu.id_taxa_obs, taxa_ref.rank, taxa_ref_sources.source_priority
+        ), full_taxonomy AS (
+         SELECT kingdom.id_taxa_obs,
+            kingdom.scientific_name AS kingdom,
+            phylum.scientific_name AS phylum,
+            class.scientific_name AS class,
+            "order".scientific_name AS "order",
+            family.scientific_name AS family,
+            genus.scientific_name AS genus,
+            species.scientific_name AS species
+           FROM ( SELECT ref_rank.id_taxa_obs,
+                    ref_rank.scientific_name
+                   FROM ref_rank
+                  WHERE ref_rank.rank = 'kingdom'::text) kingdom
+             LEFT JOIN ( SELECT ref_rank.id_taxa_obs,
+                    ref_rank.scientific_name
+                   FROM ref_rank
+                  WHERE ref_rank.rank = 'species'::text) species USING (id_taxa_obs)
+             LEFT JOIN ( SELECT ref_rank.id_taxa_obs,
+                    ref_rank.scientific_name
+                   FROM ref_rank
+                  WHERE ref_rank.rank = 'genus'::text) genus USING (id_taxa_obs)
+             LEFT JOIN ( SELECT ref_rank.id_taxa_obs,
+                    ref_rank.scientific_name
+                   FROM ref_rank
+                  WHERE ref_rank.rank = 'family'::text) family USING (id_taxa_obs)
+             LEFT JOIN ( SELECT ref_rank.id_taxa_obs,
+                    ref_rank.scientific_name
+                   FROM ref_rank
+                  WHERE ref_rank.rank = 'order'::text) "order" USING (id_taxa_obs)
+             LEFT JOIN ( SELECT ref_rank.id_taxa_obs,
+                    ref_rank.scientific_name
+                   FROM ref_rank
+                  WHERE ref_rank.rank = 'class'::text) class USING (id_taxa_obs)
+             LEFT JOIN ( SELECT ref_rank.id_taxa_obs,
+                    ref_rank.scientific_name
+                   FROM ref_rank
+                  WHERE ref_rank.rank = 'phylum'::text) phylum USING (id_taxa_obs)
+        )
+ SELECT best_ref.id_taxa_obs,
+    taxa_obs.scientific_name AS observed_scientific_name,
+    best_ref.valid_scientific_name,
+    best_ref.rank,
+    best_vernacular.vernacular_en,
+    best_vernacular.vernacular_fr,
+    obs_group.group_en,
+    obs_group.group_fr,
+    vernacular_group.vernacular,
+    agg_ref.source_references,
+    full_taxonomy.kingdom,
+    full_taxonomy.phylum,
+    full_taxonomy.class,
+    full_taxonomy."order",
+    full_taxonomy.family,
+    full_taxonomy.genus,
+    full_taxonomy.species
+   FROM best_ref
+     LEFT JOIN taxa_obs ON taxa_obs.id = best_ref.id_taxa_obs
+     LEFT JOIN vernacular_group ON best_ref.id_taxa_obs = vernacular_group.id_taxa_obs
+     LEFT JOIN obs_group ON best_ref.id_taxa_obs = obs_group.id_taxa_obs
+     LEFT JOIN best_vernacular ON best_ref.id_taxa_obs = best_vernacular.id_taxa_obs
+     LEFT JOIN agg_ref ON best_ref.id_taxa_obs = agg_ref.id_taxa_obs
+     LEFT JOIN full_taxonomy ON best_ref.id_taxa_obs = full_taxonomy.id_taxa_obs
+  ORDER BY best_ref.id_taxa_obs, best_vernacular.vernacular_en;
+
 
 -- -----------------------------------------------------------------------------
 -- VIEW api.taxa_surveyed
