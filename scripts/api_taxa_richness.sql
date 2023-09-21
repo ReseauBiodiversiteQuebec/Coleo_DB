@@ -50,22 +50,22 @@ DROP FUNCTION IF EXISTS api.taxa_richness (
     text
 );
 
-CREATE OR REPLACE FUNCTION api.taxa_richness (
-    group_by_column text DEFAULT NULL,
-    cell_id_filter integer DEFAULT NULL,
-    cell_code_filter text DEFAULT NULL,
-    site_id_filter integer DEFAULT NULL,
-    site_code_filter text DEFAULT NULL,
-    site_type_filter text DEFAULT NULL,
-    campaign_id_filter integer DEFAULT NULL,
-    campaign_type_filter text DEFAULT NULL
-)
-RETURNS TABLE (
-    grouped_by_value text,
-    richness integer,
-    taxa_list json
-) AS
-$$
+CREATE OR REPLACE FUNCTION api.taxa_richness(
+	group_by_column text DEFAULT NULL::text,
+	cell_id_filter integer DEFAULT NULL::integer,
+	cell_code_filter text DEFAULT NULL::text,
+	site_id_filter integer DEFAULT NULL::integer,
+	site_code_filter text DEFAULT NULL::text,
+	site_type_filter text DEFAULT NULL::text,
+	campaign_id_filter integer DEFAULT NULL::integer,
+	campaign_type_filter text DEFAULT NULL::text)
+    RETURNS TABLE(grouped_by_value text, richness integer, taxa_list json) 
+    LANGUAGE 'plpgsql'
+    COST 100
+    STABLE PARALLEL UNSAFE
+    ROWS 1000
+
+AS $BODY$
 
 -- Build the query to select the `group_by_column` and count the number of observations
 DECLARE
@@ -131,7 +131,14 @@ BEGIN
                     vernacular_en,
                     vernacular_fr,
                     group_fr,
-                    group_en
+                    group_en,
+					kingdom,
+            		phylum,
+					class,
+            		"order",
+            		family,
+            		genus,
+            		species
                 FROM api.taxa) taxa
             WHERE taxa.id_taxa_obs = taxa_tips.id_taxa_obs
             GROUP BY grouped_by_value
@@ -154,7 +161,14 @@ BEGIN
                     vernacular_en,
                     vernacular_fr,
                     group_fr,
-                    group_en
+                    group_en,
+					kingdom,
+            		phylum,
+					class,
+            		"order",
+            		family,
+            		genus,
+            		species
                 FROM api.taxa) taxa
             WHERE taxa.id_taxa_obs = taxa_tips.id_taxa_obs
             GROUP BY grouped_by_value
@@ -173,7 +187,7 @@ BEGIN
         campaign_id_filter,
         campaign_type_filter;
 END;
-$$
+$BODY$;
 LANGUAGE plpgsql stable;
 
 -- ALTER FUNCTION OWNER TO postgres;
