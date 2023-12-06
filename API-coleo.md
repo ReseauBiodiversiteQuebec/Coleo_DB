@@ -40,7 +40,7 @@ Les champs en gras sont obligatoires
 | off_station_code_id | texte         |                                          |                                                                                     |
 | **site_code**       | texte         | Identifiant unique du site               |                                                                                     |
 | **site_name**       | texte         | Nom du site. Par exemple, le nom du lac. |                                                                                     |
-| **type**            | choix         | Type d'inventaire réalisé sur le site    | 'lac', 'rivière', 'forestier', 'marais', 'marais côtier', 'toundrique', 'tourbière' |
+| **type**            | choix         | Type d'inventaire réalisé sur le site    | 'lac', 'rivière', 'forestier', 'marais', 'milieu humide côtier', 'toundrique', 'tourbière' |
 | **opened_at**       | date          | Date de l'ouverture du site              |                                                                                     |
 | **geom**            | geometry      | Localisation du site                     |                                                                                     |
 | notes               | texte         | Commentaires                             |                                                                                     |
