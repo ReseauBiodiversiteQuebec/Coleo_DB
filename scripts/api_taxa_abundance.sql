@@ -33,7 +33,14 @@ RETURNS TABLE (
     vernacular_en text,
     vernacular_fr text,
     group_en text,
-    group_fr text
+    group_fr text,
+    kingdom text,
+    phylum text,
+	class text,
+    "order" text,
+    family text,
+    genus text,
+    species text
 ) AS
 $$
 -- Build the query to select the `group_by_column` and count the number of observations
@@ -133,7 +140,14 @@ BEGIN
                 taxa.vernacular_en,
                 taxa.vernacular_fr,
                 taxa.group_en,
-                taxa.group_fr
+                taxa.group_fr,
+                kingdom,
+            	phylum,
+				class,
+        		"order",
+        		family,
+        		genus,
+                species
             FROM filter_obs_species
             LEFT JOIN api.taxa USING (valid_scientific_name))
         SELECT * FROM results ORDER BY grouped_by_value, abundance DESC;';
