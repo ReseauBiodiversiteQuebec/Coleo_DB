@@ -1,0 +1,46 @@
+-- -----------------------------------------------------
+-- Table public.taxa_rank_order
+-- DESCRIPTION: This table contains the ordered list of ranks for taxa data
+-- -----------------------------------------------------
+ -- Table: public.taxa_rank_order
+
+-- DROP TABLE IF EXISTS public.taxa_rank_order;
+
+CREATE TABLE IF NOT EXISTS public.taxa_rank_order
+(
+    rank_name text COLLATE pg_catalog."default" NOT NULL,
+    "order" integer NOT NULL,
+    CONSTRAINT taxa_rank_priority_pkey PRIMARY KEY (rank_name)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.taxa_rank_order
+    OWNER to postgres;
+
+REVOKE ALL ON TABLE public.taxa_rank_order FROM coleo_test_user;
+REVOKE ALL ON TABLE public.taxa_rank_order FROM read_only_all;
+REVOKE ALL ON TABLE public.taxa_rank_order FROM read_only_public;
+REVOKE ALL ON TABLE public.taxa_rank_order FROM read_write_all;
+
+GRANT SELECT ON TABLE public.taxa_rank_order TO coleo_test_user;
+
+GRANT ALL ON TABLE public.taxa_rank_order TO glaroc;
+
+GRANT ALL ON TABLE public.taxa_rank_order TO postgres;
+
+GRANT SELECT ON TABLE public.taxa_rank_order TO read_only_all;
+
+GRANT SELECT ON TABLE public.taxa_rank_order TO read_only_public;
+
+GRANT UPDATE, SELECT ON TABLE public.taxa_rank_order TO read_write_all;
+
+
+-- Insert data
+insert into taxa_rank_order (rank_name, "order") values ('kingdom', 1);
+insert into taxa_rank_order (rank_name, "order") values ('phylum', 2);
+insert into taxa_rank_order (rank_name, "order") values ('class', 3);
+insert into taxa_rank_order (rank_name, "order") values ('order', 4);
+insert into taxa_rank_order (rank_name, "order") values ('family', 5);
+insert into taxa_rank_order (rank_name, "order") values ('genus', 6);
+insert into taxa_rank_order (rank_name, "order") values ('species', 7);

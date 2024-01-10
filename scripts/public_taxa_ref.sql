@@ -190,8 +190,8 @@ CREATE OR REPLACE FUNCTION refresh_taxa_ref()
 RETURNS void AS
 $$
 BEGIN
-    DELETE FROM public.taxa_ref;
     DELETE FROM public.taxa_obs_ref_lookup;
+    DELETE FROM public.taxa_ref;
     PERFORM public.insert_taxa_ref_from_taxa_obs(
         id, scientific_name, parent_taxa_name)
     FROM public.taxa_obs;
