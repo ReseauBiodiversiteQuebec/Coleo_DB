@@ -1,85 +1,174 @@
-CREATE SCHEMA IF NOT EXISTS api;
+----------------------------------------------------------------------------------------------
+-- Introduce correspondance of best_ref with parent taxa in api.taxa
+--
+-- api.taxa mélange différentes sources pour combler sa taxonomie, ce qui entraine des erreurs 
+-- lorsqu'il y a synonimie. Le rang du best_ref doit être conservé dans l'élaboration de api.taxa.
+----------------------------------------------------------------------------------------------
 
--- -----------------------------------------------------
--- Table `api.taxa_ref_sources
--- DESCRIPTION: This table contains the list of sources for taxa data with priority
--- -----------------------------------------------------
+----------------------------------------------------------------------------------------------
+-- 1. Fix problematic names that cause api.taxa to reference multiple species within its taxonomy
+----------------------------------------------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS api.taxa_ref_sources (
-  source_id INTEGER PRIMARY KEY,
-  source_name VARCHAR(255) NOT NULL,
-  source_priority INTEGER NOT NULL
-);
+select id_taxa_obs, observed_scientific_name, valid_scientific_name, rank, kingdom, phylum, class, "order", family, genus, species
+from api.taxa
+where --observed_scientific_name ilike '%Daphnia%'
+	rank <> 'species'
+	and species is not NULL
 
-DELETE FROM api.taxa_ref_sources;
+-- Unknown Daphnia male
+-- 1. update obs_species
+update obs_species
+set parent_taxa_name = 'Arthropoda',
+	taxa_name = 'Daphnia',
+	id_taxa_obs = 2368
+where taxa_name like 'Unknown Daphnia male'
+-- 2. update taxa_obs
+update taxa_obs set parent_taxa_name = 'Arthropoda' where id = 2368
+delete from taxa_obs where id = 96049
 
-INSERT INTO api.taxa_ref_sources
-VALUES (1002, 'CDPNQ', 1),
-	(1001, 'Bryoquel', 2),
-	(147, 'VASCAN', 3),
-	(3, 'ITIS', 4),
-	(11, 'GBIF Backbone Taxonomy', 5),
-	(1, 'Catalogue of Life', 6);
+-- Unknown Daphnia female
+-- 1. update obs_species
+update obs_species
+set parent_taxa_name = 'Arthropoda',
+	taxa_name = 'Daphnia',
+	id_taxa_obs = 2368
+where taxa_name like 'Unknown Daphnia female'
+-- 2. update taxa_obs
+delete from taxa_obs where id = 96049
 
-CREATE TABLE IF NOT EXISTS api.taxa_vernacular_sources(
-	source_name VARCHAR(255) PRIMARY KEY,
-	source_priority INTEGER NOT NULL
-);
+-- Ceriodaphnia unknown
+select *
+from obs_species 
+where taxa_name ilike 'Ceriodaphnia unknown'
+-- 1. update obs_species
+select * 
+from taxa_obs 
+where scientific_name ilike '%Daphnia%'
+delete from obs_species where taxa_name like 'Ceriodaphnia unknown'
+insert into obs_species (taxa_name, variable, value, observation_id, parent_taxa_name)
+	values ('Ceriodaphnia', 'abondance', 1, 558870, 'Arthropoda')
+insert into obs_species (taxa_name, variable, value, observation_id, parent_taxa_name)
+	values ('Ceriodaphnia', 'abondance', 1, 558883, 'Arthropoda')
+insert into obs_species (taxa_name, variable, value, observation_id, parent_taxa_name)
+	values ('Ceriodaphnia', 'abondance', 1, 558540, 'Arthropoda')
+insert into obs_species (taxa_name, variable, value, observation_id, parent_taxa_name)
+	values ('Ceriodaphnia', 'abondance', 1, 558554, 'Arthropoda')
+-- 2. update taxa_obs
+delete from taxa_obs_ref_lookup where id_taxa_obs in (select id from taxa_obs where scientific_name = 'Ceriodaphnia unknown')
+delete from taxa_obs_vernacular_lookup where id_taxa_obs in (select id from taxa_obs where scientific_name = 'Ceriodaphnia unknown')
+delete from taxa_obs where scientific_name = 'Ceriodaphnia unknown'
 
-DELETE FROM api.taxa_vernacular_sources;
+-- Daphnia pulex / pulcaria
+select *
+from obs_species 
+where taxa_name ilike 'Daphnia pulex / pulcaria'
+-- 1. update obs_species
+update obs_species 
+set taxa_name = 'Daphnia pulex | pulcaria',
+	updated_at = current_timestamp
+where taxa_name like 'Daphnia pulex / pulcaria'
+-- 2. update taxa_obs
+update taxa_obs 
+set scientific_name = 'Daphnia pulex | pulcaria'
+where scientific_name like 'Daphnia pulex / pulcaria'
 
-INSERT INTO api.taxa_vernacular_sources
-VALUES ('CDPNQ', 1),
-	('Bryoquel', 2),
-	('Database of Vascular Plants of Canada (VASCAN)', 3),
-	('Integrated Taxonomic Information System (ITIS)', 4);
+-- Daphnia mendotae / dentifera
+select *
+from obs_species 
+where taxa_name ilike 'Daphnia mendotae / dentifera'
+-- 1. update obs_species
+update obs_species 
+set taxa_name = 'Daphnia mendotae | dentifera',
+	updated_at = current_timestamp
+where taxa_name like 'Daphnia mendotae / dentifera'
+-- 2. update taxa_obs
+update taxa_obs 
+set scientific_name = 'Daphnia mendotae | dentifera'
+where scientific_name like 'Daphnia mendotae / dentifera'
 
 
--- -----------------------------------------------------------------------------
--- VIEW api.taxa
--- DESCRIPTION List all observed taxons with their matched attributes from ref
---   ref sources and vernacular sources
--- -----------------------------------------------------------------------------
 
--- DROP MATERIALIZED VIEW if exists api.taxa CASCADE;
-/*
-This selection creates a materialized view named "api.taxa" that combines data from multiple tables to generate a taxonomy view. 
+-------------------------------------------------------------------------------
+-- REFRESH taxa_ref and taxa_obs_ref_lookup
+-------------------------------------------------------------------------------
 
-The selection uses common table expressions (CTEs) to perform various data transformations and aggregations. 
+CREATE OR REPLACE FUNCTION refresh_taxa_ref()
+RETURNS void AS
+$$
+BEGIN
+    DELETE FROM public.taxa_obs_ref_lookup;
+	DELETE FROM public.taxa_ref;
+    PERFORM public.insert_taxa_ref_from_taxa_obs(
+        id, scientific_name, parent_taxa_name)
+    FROM public.taxa_obs;
+END;
+$$ LANGUAGE 'plpgsql';
 
-The CTEs used in this selection are as follows:
-- all_ref: Retrieves taxonomic information from the taxa_obs_ref_lookup and taxa_ref tables, filtering out complex matches and ordering the results by source priority.
-- agg_ref: Aggregates the taxonomic references for each taxa_obs_id into a JSON array.
-- best_ref: Selects the best taxonomic reference for each taxa_obs_id based on source priority.
-- obs_group: Retrieves the taxonomic group information for each taxa_obs_id, replacing null values with default values.
-- vernacular_all: Retrieves vernacular names for each taxa_obs_id from the taxa_obs_vernacular_lookup and taxa_vernacular tables, ordering the results by match type and source priority.
-- best_vernacular: Selects the best vernacular names (in English and French) for each taxa_obs_id.
-- vernacular_group: Aggregates the vernacular names for each taxa_obs_id into a JSON array.
-- ref_rank: Retrieves taxonomic references for each taxa_obs_id, filtering out duplicates based on rank and source priority.
-- full_taxonomy: Combines the taxonomic information from the ref_rank CTE to generate the full taxonomy view.
 
-The resulting materialized view "api.taxa" will contain the following columns:
-- id_taxa_obs: The unique identifier for each taxonomic observation.
-- valid_scientific_name: The valid scientific name for the taxon.
-- rank: The taxonomic rank of the taxon.
-- source_name: The name of the data source for the taxon.
-- source_priority: The priority of the data source for the taxon.
-- source_taxon_key: The unique identifier for the taxon in the data source.
-- source_references: A JSON array containing the taxonomic references for the taxon.
-- group_en: The English name of the taxonomic group for the taxon.
-- group_fr: The French name of the taxonomic group for the taxon.
-- vernacular: A JSON array containing the vernacular names for the taxon.
-- kingdom: The scientific name of the kingdom for the taxon.
-- phylum: The scientific name of the phylum for the taxon.
-- class: The scientific name of the class for the taxon.
-- order: The scientific name of the order for the taxon.
-- family: The scientific name of the family for the taxon.
-- genus: The scientific name of the genus for the taxon.
-- species: The scientific name of the species for the taxon.
-*/
-CREATE MATERIALIZED VIEW api.taxa AS
- 	WITH all_ref AS (
-        SELECT obs_lookup.id_taxa_obs,
+-- LAST
+select public.refresh_taxa_ref();
+select public.refresh_taxa_vernacular();
+REFRESH MATERIALIZED VIEW CONCURRENTLY public.taxa_obs_group_lookup;
+
+
+----------------------------------------------------------------------------------------------
+-- 2. create taxa_rank_order to order taxa_ref by rank
+----------------------------------------------------------------------------------------------
+ -- Table: public.taxa_rank_order
+
+-- DROP TABLE IF EXISTS public.taxa_rank_order;
+
+CREATE TABLE IF NOT EXISTS public.taxa_rank_order
+(
+    rank_name text COLLATE pg_catalog."default" NOT NULL,
+    "order" integer NOT NULL,
+    CONSTRAINT taxa_rank_priority_pkey PRIMARY KEY (rank_name)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.taxa_rank_order
+    OWNER to postgres;
+
+REVOKE ALL ON TABLE public.taxa_rank_order FROM coleo_test_user;
+REVOKE ALL ON TABLE public.taxa_rank_order FROM read_only_all;
+REVOKE ALL ON TABLE public.taxa_rank_order FROM read_only_public;
+REVOKE ALL ON TABLE public.taxa_rank_order FROM read_write_all;
+
+GRANT SELECT ON TABLE public.taxa_rank_order TO coleo_test_user;
+
+GRANT ALL ON TABLE public.taxa_rank_order TO glaroc;
+
+GRANT ALL ON TABLE public.taxa_rank_order TO postgres;
+
+GRANT SELECT ON TABLE public.taxa_rank_order TO read_only_all;
+
+GRANT SELECT ON TABLE public.taxa_rank_order TO read_only_public;
+
+GRANT UPDATE, SELECT ON TABLE public.taxa_rank_order TO read_write_all;
+
+
+-- Insert data
+insert into taxa_rank_order (rank_name, "order") values ('kingdom', 1);
+insert into taxa_rank_order (rank_name, "order") values ('phylum', 2);
+insert into taxa_rank_order (rank_name, "order") values ('class', 3);
+insert into taxa_rank_order (rank_name, "order") values ('order', 4);
+insert into taxa_rank_order (rank_name, "order") values ('family', 5);
+insert into taxa_rank_order (rank_name, "order") values ('genus', 6);
+insert into taxa_rank_order (rank_name, "order") values ('species', 7);
+
+
+----------------------------------------------------------------------------------------------
+-- 3. update api.taxa
+----------------------------------------------------------------------------------------------
+-- View: api.taxa
+
+-- DROP VIEW api.taxa;
+
+CREATE OR REPLACE VIEW api.taxa
+ AS
+ WITH all_ref AS (
+         SELECT obs_lookup.id_taxa_obs,
             taxa_ref.scientific_name AS valid_scientific_name,
             taxa_ref.rank,
             taxa_ref.source_name,
@@ -235,101 +324,3 @@ CREATE MATERIALIZED VIEW api.taxa AS
      LEFT JOIN agg_ref ON best_ref.id_taxa_obs = agg_ref.id_taxa_obs
      LEFT JOIN full_taxonomy ON best_ref.id_taxa_obs = full_taxonomy.id_taxa_obs
   ORDER BY best_ref.id_taxa_obs, best_vernacular.vernacular_en;
-  
-
--- ALTER permissions
-ALTER TABLE api.taxa OWNER TO postgres;
-
-REVOKE ALL ON TABLE api.taxa FROM coleo_test_user;
-REVOKE ALL ON TABLE api.taxa FROM read_only_all;
-REVOKE ALL ON TABLE api.taxa FROM read_only_public;
-REVOKE ALL ON TABLE api.taxa FROM read_write_all;
-
-GRANT SELECT ON TABLE api.taxa TO coleo_test_user;
-GRANT ALL ON TABLE api.taxa TO postgres;
-GRANT SELECT ON TABLE api.taxa TO read_only_all;
-GRANT SELECT ON TABLE api.taxa TO read_only_public;
-GRANT INSERT, TRUNCATE, REFERENCES, TRIGGER, UPDATE, SELECT ON TABLE api.taxa TO read_write_all;
-
-
--- Add indexes on the 'api.taxa' table:
--- 1. 'taxa_obs_scientific_name_idx' index on the 'id_taxa_obs' column.
--- 2. 'taxa_obs_valid_scientific_name_idx' index on the 'valid_scientific_name' column.
-CREATE INDEX taxa_obs_id_taxa_obs_idx ON api.taxa (id_taxa_obs);
-CREATE INDEX taxa_obs_valid_scientific_name_idx ON api.taxa (valid_scientific_name);
-
--- -----------------------------------------------------------------------------
--- VIEW api.taxa_surveyed
--- DESCRIPTION List observed taxa at cell, site and campain level
--- -----------------------------------------------------------------------------
-
--- DROP VIEW if exists api.taxa_surveyed CASCADE;
-CREATE OR REPLACE VIEW api.taxa_surveyed AS (
-    WITH survey_lookup AS (
-        SELECT DISTINCT
-            obs_species.id_taxa_obs,
-            obs.campaign_id,
-			campaigns.type campaign_type,
-            campaigns.site_id,
-            sites.site_code,
-            sites.type site_type,
-            sites.cell_id,
-            cells.cell_code
-        FROM obs_species 
-        JOIN observations obs on obs.id = obs_species.observation_id
-        JOIN campaigns on campaigns.id = obs.campaign_id
-        JOIN sites on sites.id = campaigns.site_id
-        JOIN cells on cells.id = sites.cell_id
-    )
-    SELECT
-        taxa.*,
-        campaign_id,
-		campaign_type,
-        site_id,
-        site_code,
-        site_type,
-        cell_id,
-        cell_code
-    FROM api.taxa, survey_lookup
-    WHERE survey_lookup.id_taxa_obs = taxa.id_taxa_obs
-);
-
-
--- -----------------------------------------------------------------------------
--- FUNCTION api.match_taxa
--- DESCRIPTION Match taxa to a reference name and returns all children
--- -----------------------------------------------------------------------------
-
-DROP FUNCTION IF EXISTS api.match_taxa(text);
-CREATE FUNCTION api.match_taxa(
-	taxa_name text	
-)
-RETURNS SETOF api.taxa AS $$
-    with match_taxa_obs as (
-        (
-            select ref_lookup.id_taxa_obs id
-            from taxa_ref
-            left join taxa_obs_ref_lookup ref_lookup
-                on taxa_ref.id = ref_lookup.id_taxa_ref
-            where LOWER(taxa_ref.scientific_name) = LOWER(taxa_name)
-        ) UNION (
-            select vernacular_lookup.id_taxa_obs
-            from taxa_vernacular
-            left join taxa_obs_vernacular_lookup vernacular_lookup
-                on taxa_vernacular.id = vernacular_lookup.id_taxa_vernacular
-            where LOWER(taxa_vernacular.name) = LOWER(taxa_name)
-        )
-    ), synonym_taxa_obs as (
-		select distinct taxa_obs.*
-		from match_taxa_obs
-		left join taxa_obs_ref_lookup search_lookup
-			on match_taxa_obs.id = search_lookup.id_taxa_obs
-		left join taxa_obs_ref_lookup synonym_lookup
-			on search_lookup.id_taxa_ref_valid = synonym_lookup.id_taxa_ref_valid
-		left join taxa_obs
-			on synonym_lookup.id_taxa_obs = taxa_obs.id
-		where search_lookup.match_type is not null)
-	SELECT taxa.* from api.taxa, synonym_taxa_obs
-	WHERE synonym_taxa_obs.id = api.taxa.id_taxa_obs
-$$ LANGUAGE sql;
-
