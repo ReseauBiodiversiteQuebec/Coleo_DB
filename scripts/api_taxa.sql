@@ -284,7 +284,7 @@ CREATE OR REPLACE VIEW api.taxa_surveyed AS (
 -- -----------------------------------------------------------------------------
 
 DROP FUNCTION IF EXISTS api.match_taxa(text);
-CREATE FUNCTION match_taxa(
+CREATE FUNCTION api.match_taxa(
 	taxa_name text	
 )
 RETURNS SETOF api.taxa AS $$

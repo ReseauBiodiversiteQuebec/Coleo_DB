@@ -3,10 +3,16 @@
 --%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ------------------------------------------------------------------------
--- 1. DROP the old view
+-- 1. DROP the old view and objects that depend on it
+--
+-- match_taxa() function
+-- api.match_taxa() function
+-- api.taxa_surveyed view
+-- indicators.pheno_acoustique view
+-- api.pheno_acoustique view
 ------------------------------------------------------------------------
 
-DROP VIEW IF EXISTS api.taxa;
+DROP VIEW IF EXISTS api.taxa CASCADE;
 
 
 ------------------------------------------------------------------------
@@ -218,7 +224,206 @@ CREATE INDEX taxa_obs_valid_scientific_name_idx ON api.taxa (valid_scientific_na
 -- SELECT * FROM api.taxa WHERE id_taxa_obs in (select id from taxa_obs limit 10);
 
 ------------------------------------------------------------------------
--- 3. Add cronjobs to REFRESH the new materialized view
+-- 4. Re-create the objects that depend on the new materialized view
+--
+-- match_taxa() function
+-- api.match_taxa() function
+-- api.taxa_surveyed view
+-- indicators.pheno_acoustique view
+-- api.pheno_acoustique view
+------------------------------------------------------------------------
+
+-- match_taxa() function
+CREATE FUNCTION public.match_taxa(
+	taxa_name text	
+)
+RETURNS SETOF taxa AS $$
+    with match_taxa_obs as (
+        (
+            select ref_lookup.id_taxa_obs id
+            from taxa_ref
+            left join taxa_obs_ref_lookup ref_lookup
+                on taxa_ref.id = ref_lookup.id_taxa_ref
+            where LOWER(taxa_ref.scientific_name) = LOWER(taxa_name)
+        ) UNION (
+            select vernacular_lookup.id_taxa_obs
+            from taxa_vernacular
+            left join taxa_obs_vernacular_lookup vernacular_lookup
+                on taxa_vernacular.id = vernacular_lookup.id_taxa_vernacular
+            where LOWER(taxa_vernacular.name) = LOWER(taxa_name)
+        )
+    ), synonym_taxa_obs as (
+		select distinct taxa_obs.*
+		from match_taxa_obs
+		left join taxa_obs_ref_lookup search_lookup
+			on match_taxa_obs.id = search_lookup.id_taxa_obs
+		left join taxa_obs_ref_lookup synonym_lookup
+			on search_lookup.id_taxa_ref_valid = synonym_lookup.id_taxa_ref_valid
+		left join taxa_obs
+			on synonym_lookup.id_taxa_obs = taxa_obs.id
+		where search_lookup.match_type is not null)
+	SELECT taxa.* from api.taxa, synonym_taxa_obs
+	WHERE synonym_taxa_obs.id = api.taxa.id_taxa_obs
+$$ LANGUAGE sql;
+
+ALTER FUNCTION public.match_taxa(text)
+    OWNER TO postgres;
+
+GRANT EXECUTE ON FUNCTION public.match_taxa(text) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.match_taxa(text) TO coleo_test_user;
+GRANT EXECUTE ON FUNCTION public.match_taxa(text) TO read_write_all;
+GRANT EXECUTE ON FUNCTION public.match_taxa(text) TO postgres;
+GRANT EXECUTE ON FUNCTION public.match_taxa(text) TO vbeaure;
+GRANT EXECUTE ON FUNCTION public.match_taxa(text) TO glaroc;
+
+-- api.match_taxa() function
+CREATE FUNCTION api.match_taxa(
+	taxa_name text	
+)
+RETURNS SETOF taxa AS $$
+    with match_taxa_obs as (
+        (
+            select ref_lookup.id_taxa_obs id
+            from taxa_ref
+            left join taxa_obs_ref_lookup ref_lookup
+                on taxa_ref.id = ref_lookup.id_taxa_ref
+            where LOWER(taxa_ref.scientific_name) = LOWER(taxa_name)
+        ) UNION (
+            select vernacular_lookup.id_taxa_obs
+            from taxa_vernacular
+            left join taxa_obs_vernacular_lookup vernacular_lookup
+                on taxa_vernacular.id = vernacular_lookup.id_taxa_vernacular
+            where LOWER(taxa_vernacular.name) = LOWER(taxa_name)
+        )
+    ), synonym_taxa_obs as (
+		select distinct taxa_obs.*
+		from match_taxa_obs
+		left join taxa_obs_ref_lookup search_lookup
+			on match_taxa_obs.id = search_lookup.id_taxa_obs
+		left join taxa_obs_ref_lookup synonym_lookup
+			on search_lookup.id_taxa_ref_valid = synonym_lookup.id_taxa_ref_valid
+		left join taxa_obs
+			on synonym_lookup.id_taxa_obs = taxa_obs.id
+		where search_lookup.match_type is not null)
+	SELECT taxa.* from api.taxa, synonym_taxa_obs
+	WHERE synonym_taxa_obs.id = api.taxa.id_taxa_obs
+$$ LANGUAGE sql;
+
+ALTER FUNCTION api.match_taxa(text)
+    OWNER TO postgres;
+
+GRANT EXECUTE ON FUNCTION api.match_taxa(text) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION api.match_taxa(text) TO coleo_test_user;
+GRANT EXECUTE ON FUNCTION api.match_taxa(text) TO read_write_all;
+GRANT EXECUTE ON FUNCTION api.match_taxa(text) TO postgres;
+GRANT EXECUTE ON FUNCTION api.match_taxa(text) TO vbeaure;
+GRANT EXECUTE ON FUNCTION api.match_taxa(text) TO glaroc;
+
+-- api.taxa_surveyed view
+CREATE OR REPLACE VIEW api.taxa_surveyed AS (
+    WITH survey_lookup AS (
+        SELECT DISTINCT
+            obs_species.id_taxa_obs,
+            obs.campaign_id,
+			campaigns.type campaign_type,
+            campaigns.site_id,
+            sites.site_code,
+            sites.type site_type,
+            sites.cell_id,
+            cells.cell_code
+        FROM obs_species 
+        JOIN observations obs on obs.id = obs_species.observation_id
+        JOIN campaigns on campaigns.id = obs.campaign_id
+        JOIN sites on sites.id = campaigns.site_id
+        JOIN cells on cells.id = sites.cell_id
+    )
+    SELECT
+        taxa.*,
+        campaign_id,
+		campaign_type,
+        site_id,
+        site_code,
+        site_type,
+        cell_id,
+        cell_code
+    FROM api.taxa, survey_lookup
+    WHERE survey_lookup.id_taxa_obs = taxa.id_taxa_obs
+);
+
+ALTER TABLE api.taxa_surveyed OWNER TO postgres;
+
+GRANT SELECT ON TABLE api.taxa_surveyed TO coleo_test_user;
+GRANT SELECT ON TABLE api.taxa_surveyed TO read_write_all;
+GRANT SELECT ON TABLE api.taxa_surveyed TO read_only_all;
+GRANT ALL ON TABLE api.taxa_surveyed TO postgres;
+GRANT ALL ON TABLE api.taxa_surveyed TO glaroc;
+GRANT ALL ON TABLE api.taxa_surveyed TO vbeaure;
+
+-- indicators.pheno_acoustique view
+CREATE OR REPLACE VIEW indicators.pheno_acoustique
+ AS
+ WITH results AS (
+         SELECT s.id AS site_id,
+            c.type AS campaign_type,
+            taxa.valid_scientific_name AS taxa_name,
+            date_part('year'::text, o.date_obs) AS year,
+            o.date_obs,
+            os.id_taxa_obs
+           FROM observations o
+             LEFT JOIN obs_species os ON o.id = os.observation_id
+             LEFT JOIN campaigns c ON o.campaign_id = c.id
+             LEFT JOIN public.sites s ON c.site_id = s.id
+             LEFT JOIN api.taxa ON os.id_taxa_obs = taxa.id_taxa_obs
+          WHERE os.taxa_name IS NOT NULL AND (c.type = ANY (ARRAY['acoustique_chiroptères'::enum_campaigns_type, 'acoustique_orthoptères'::enum_campaigns_type, 'acoustique_oiseaux'::enum_campaigns_type, 'acoustique_anoures'::enum_campaigns_type]))
+          ORDER BY s.id, taxa.valid_scientific_name
+        ), sites AS (
+         SELECT results_1.site_id,
+            array_agg(results_1.id_taxa_obs) AS id_taxa_obs
+           FROM results results_1
+          GROUP BY results_1.site_id
+        ), tips AS (
+         SELECT sites.site_id,
+            taxa_branch_tips(sites.id_taxa_obs) AS id_taxa_obs
+           FROM sites
+        )
+ SELECT tips.site_id,
+    results.campaign_type,
+    results.taxa_name,
+    results.year,
+    date_obs
+   FROM results,
+    tips
+  WHERE results.id_taxa_obs = tips.id_taxa_obs AND results.site_id = tips.site_id
+  ORDER BY tips.site_id, results.year, results.taxa_name;
+
+ALTER TABLE indicators.pheno_acoustique OWNER TO postgres;
+
+-- api.pheno_acoustique view
+CREATE OR REPLACE VIEW api.pheno_acoustique
+ AS
+ SELECT pheno_acoustique.site_id,
+    pheno_acoustique.campaign_type,
+    pheno_acoustique.taxa_name,
+    pheno_acoustique.year,
+    pheno_acoustique.date_obs,
+    pheno_acoustique.valid_name,
+    pheno_acoustique.taxa_name_en,
+    pheno_acoustique.site_lat
+   FROM indicators.pheno_acoustique;
+
+ALTER TABLE api.pheno_acoustique
+    OWNER TO postgres;
+
+GRANT SELECT ON TABLE api.pheno_acoustique TO coleo_test_user;
+GRANT ALL ON TABLE api.pheno_acoustique TO glaroc;
+GRANT ALL ON TABLE api.pheno_acoustique TO postgres;
+GRANT SELECT ON TABLE api.pheno_acoustique TO read_only_all;
+GRANT SELECT ON TABLE api.pheno_acoustique TO read_only_public;
+GRANT SELECT ON TABLE api.pheno_acoustique TO read_write_all;
+
+
+------------------------------------------------------------------------
+-- 5. Add cronjobs to REFRESH the new materialized view
 --
 -- NOTE: The adopted strategy is to refresh the materialized view
 --       every day. A complete refresh is done as the materialized
