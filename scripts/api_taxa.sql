@@ -41,11 +41,45 @@ VALUES ('CDPNQ', 1),
 --   ref sources and vernacular sources
 -- -----------------------------------------------------------------------------
 
--- DROP VIEW if exists api.taxa CASCADE;
-CREATE OR REPLACE VIEW api.taxa
- AS
- WITH all_ref AS (
-         SELECT obs_lookup.id_taxa_obs,
+-- DROP MATERIALIZED VIEW if exists api.taxa CASCADE;
+/*
+This selection creates a materialized view named "api.taxa" that combines data from multiple tables to generate a taxonomy view. 
+
+The selection uses common table expressions (CTEs) to perform various data transformations and aggregations. 
+
+The CTEs used in this selection are as follows:
+- all_ref: Retrieves taxonomic information from the taxa_obs_ref_lookup and taxa_ref tables, filtering out complex matches and ordering the results by source priority.
+- agg_ref: Aggregates the taxonomic references for each taxa_obs_id into a JSON array.
+- best_ref: Selects the best taxonomic reference for each taxa_obs_id based on source priority.
+- obs_group: Retrieves the taxonomic group information for each taxa_obs_id, replacing null values with default values.
+- vernacular_all: Retrieves vernacular names for each taxa_obs_id from the taxa_obs_vernacular_lookup and taxa_vernacular tables, ordering the results by match type and source priority.
+- best_vernacular: Selects the best vernacular names (in English and French) for each taxa_obs_id.
+- vernacular_group: Aggregates the vernacular names for each taxa_obs_id into a JSON array.
+- ref_rank: Retrieves taxonomic references for each taxa_obs_id, filtering out duplicates based on rank and source priority.
+- full_taxonomy: Combines the taxonomic information from the ref_rank CTE to generate the full taxonomy view.
+
+The resulting materialized view "api.taxa" will contain the following columns:
+- id_taxa_obs: The unique identifier for each taxonomic observation.
+- valid_scientific_name: The valid scientific name for the taxon.
+- rank: The taxonomic rank of the taxon.
+- source_name: The name of the data source for the taxon.
+- source_priority: The priority of the data source for the taxon.
+- source_taxon_key: The unique identifier for the taxon in the data source.
+- source_references: A JSON array containing the taxonomic references for the taxon.
+- group_en: The English name of the taxonomic group for the taxon.
+- group_fr: The French name of the taxonomic group for the taxon.
+- vernacular: A JSON array containing the vernacular names for the taxon.
+- kingdom: The scientific name of the kingdom for the taxon.
+- phylum: The scientific name of the phylum for the taxon.
+- class: The scientific name of the class for the taxon.
+- order: The scientific name of the order for the taxon.
+- family: The scientific name of the family for the taxon.
+- genus: The scientific name of the genus for the taxon.
+- species: The scientific name of the species for the taxon.
+*/
+CREATE MATERIALIZED VIEW api.taxa AS
+ 	WITH all_ref AS (
+        SELECT obs_lookup.id_taxa_obs,
             taxa_ref.scientific_name AS valid_scientific_name,
             taxa_ref.rank,
             taxa_ref.source_name,
@@ -159,31 +193,52 @@ CREATE OR REPLACE VIEW api.taxa
                    FROM ref_rank
                   WHERE ref_rank.rank = 'phylum'::text) phylum USING (id_taxa_obs)
         )
- SELECT best_ref.id_taxa_obs,
-    taxa_obs.scientific_name AS observed_scientific_name,
-    best_ref.valid_scientific_name,
-    best_ref.rank,
-    best_vernacular.vernacular_en,
-    best_vernacular.vernacular_fr,
-    obs_group.group_en,
-    obs_group.group_fr,
-    vernacular_group.vernacular,
-    agg_ref.source_references,
-    full_taxonomy.kingdom,
-    full_taxonomy.phylum,
-    full_taxonomy.class,
-    full_taxonomy."order",
-    full_taxonomy.family,
-    full_taxonomy.genus,
-    full_taxonomy.species
-   FROM best_ref
-     LEFT JOIN taxa_obs ON taxa_obs.id = best_ref.id_taxa_obs
-     LEFT JOIN vernacular_group ON best_ref.id_taxa_obs = vernacular_group.id_taxa_obs
-     LEFT JOIN obs_group ON best_ref.id_taxa_obs = obs_group.id_taxa_obs
-     LEFT JOIN best_vernacular ON best_ref.id_taxa_obs = best_vernacular.id_taxa_obs
-     LEFT JOIN agg_ref ON best_ref.id_taxa_obs = agg_ref.id_taxa_obs
-     LEFT JOIN full_taxonomy ON best_ref.id_taxa_obs = full_taxonomy.id_taxa_obs
-  ORDER BY best_ref.id_taxa_obs, best_vernacular.vernacular_en;
+ 	SELECT best_ref.id_taxa_obs,
+		taxa_obs.scientific_name AS observed_scientific_name,
+		best_ref.valid_scientific_name,
+		best_ref.rank,
+		best_vernacular.vernacular_en,
+		best_vernacular.vernacular_fr,
+		obs_group.group_en,
+		obs_group.group_fr,
+		vernacular_group.vernacular,
+		agg_ref.source_references,
+		full_taxonomy.kingdom,
+		full_taxonomy.phylum,
+		full_taxonomy.class,
+		full_taxonomy."order",
+		full_taxonomy.family,
+		full_taxonomy.genus,
+		full_taxonomy.species
+    FROM best_ref
+		LEFT JOIN taxa_obs ON taxa_obs.id = best_ref.id_taxa_obs
+		LEFT JOIN vernacular_group ON best_ref.id_taxa_obs = vernacular_group.id_taxa_obs
+		LEFT JOIN obs_group ON best_ref.id_taxa_obs = obs_group.id_taxa_obs
+		LEFT JOIN best_vernacular ON best_ref.id_taxa_obs = best_vernacular.id_taxa_obs
+		LEFT JOIN agg_ref ON best_ref.id_taxa_obs = agg_ref.id_taxa_obs
+		LEFT JOIN full_taxonomy ON best_ref.id_taxa_obs = full_taxonomy.id_taxa_obs
+	ORDER BY best_ref.id_taxa_obs, best_vernacular.vernacular_en;
+
+-- ALTER permissions
+ALTER TABLE api.taxa OWNER TO postgres;
+
+REVOKE ALL ON TABLE api.taxa FROM coleo_test_user;
+REVOKE ALL ON TABLE api.taxa FROM read_only_all;
+REVOKE ALL ON TABLE api.taxa FROM read_only_public;
+REVOKE ALL ON TABLE api.taxa FROM read_write_all;
+
+GRANT SELECT ON TABLE api.taxa TO coleo_test_user;
+GRANT ALL ON TABLE api.taxa TO postgres;
+GRANT SELECT ON TABLE api.taxa TO read_only_all;
+GRANT SELECT ON TABLE api.taxa TO read_only_public;
+GRANT INSERT, TRUNCATE, REFERENCES, TRIGGER, UPDATE, SELECT ON TABLE api.taxa TO read_write_all;
+
+
+-- Add indexes on the 'api.taxa' table:
+-- 1. 'taxa_obs_scientific_name_idx' index on the 'id_taxa_obs' column.
+-- 2. 'taxa_obs_valid_scientific_name_idx' index on the 'valid_scientific_name' column.
+CREATE INDEX taxa_obs_id_taxa_obs_idx ON api.taxa (id_taxa_obs);
+CREATE INDEX taxa_obs_valid_scientific_name_idx ON api.taxa (valid_scientific_name);
 
 
 -- -----------------------------------------------------------------------------
@@ -229,7 +284,7 @@ CREATE OR REPLACE VIEW api.taxa_surveyed AS (
 -- -----------------------------------------------------------------------------
 
 DROP FUNCTION IF EXISTS api.match_taxa(text);
-CREATE FUNCTION match_taxa(
+CREATE FUNCTION api.match_taxa(
 	taxa_name text	
 )
 RETURNS SETOF api.taxa AS $$
