@@ -28,7 +28,7 @@ Certain tasks are executed periodically by the server. These tasks are called cr
 
 Scripts must be executed under the `postgres` user.
 
-- `./cron/refresh_taxa.sql`: Refreshes the `taxa_ref` and the `taxa_vernacular` tables. This script is executed every Friday at 9:00 AM.
+- `./cron/refresh_taxa.sql`: Refreshes the `taxa_ref` table, the `taxa_vernacular` table, and the `api.taxa` materialized view. This script is executed every Friday at 9:00 PM.
 
 ### Editing cron jobs for `postgres` user
 

@@ -10,21 +10,23 @@ CREATE SCHEMA IF NOT EXISTS indicators;
 
 -- DROP VIEW indicators.pheno_acoustique;
 
-CREATE OR REPLACE VIEW indicators.pheno_acoustique
- AS
+CREATE VIEW indicators.pheno_acoustique AS
  WITH results AS (
          SELECT s.id AS site_id,
             c.type AS campaign_type,
-            taxa.valid_scientific_name AS taxa_name,
+            taxa.valid_scientific_name AS valid_name,
+            taxa.vernacular_fr AS taxa_name,
+            taxa.vernacular_en AS taxa_name_en,
             date_part('year'::text, o.date_obs) AS year,
             o.date_obs,
-            os.id_taxa_obs
-           FROM observations o
-             LEFT JOIN obs_species os ON o.id = os.observation_id
-             LEFT JOIN campaigns c ON o.campaign_id = c.id
-             LEFT JOIN public.sites s ON c.site_id = s.id
-             LEFT JOIN api.taxa ON os.id_taxa_obs = taxa.id_taxa_obs
-          WHERE os.taxa_name IS NOT NULL AND (c.type = ANY (ARRAY['acoustique_chiroptères'::enum_campaigns_type, 'acoustique_orthoptères'::enum_campaigns_type, 'acoustique_oiseaux'::enum_campaigns_type, 'acoustique_anoures'::enum_campaigns_type]))
+            os.id_taxa_obs,
+            public.st_y(s.geom) AS site_lat
+           FROM ((((public.observations o
+             LEFT JOIN public.obs_species os ON ((o.id = os.observation_id)))
+             LEFT JOIN public.campaigns c ON ((o.campaign_id = c.id)))
+             LEFT JOIN public.sites s ON ((c.site_id = s.id)))
+             LEFT JOIN api.taxa ON ((os.id_taxa_obs = taxa.id_taxa_obs)))
+          WHERE ((os.taxa_name IS NOT NULL) AND (c.type = ANY (ARRAY['acoustique_chiroptères'::public.enum_campaigns_type, 'acoustique_orthoptères'::public.enum_campaigns_type, 'acoustique_oiseaux'::public.enum_campaigns_type, 'acoustique_anoures'::public.enum_campaigns_type])))
           ORDER BY s.id, taxa.valid_scientific_name
         ), sites AS (
          SELECT results_1.site_id,
@@ -33,15 +35,20 @@ CREATE OR REPLACE VIEW indicators.pheno_acoustique
           GROUP BY results_1.site_id
         ), tips AS (
          SELECT sites.site_id,
-            taxa_branch_tips(sites.id_taxa_obs) AS id_taxa_obs
+            api.taxa_branch_tips(sites.id_taxa_obs) AS id_taxa_obs
            FROM sites
         )
  SELECT tips.site_id,
     results.campaign_type,
     results.taxa_name,
     results.year,
-    date_obs
+    results.date_obs,
+    results.valid_name,
+    results.taxa_name_en,
+    results.site_lat
    FROM results,
     tips
-  WHERE results.id_taxa_obs = tips.id_taxa_obs AND results.site_id = tips.site_id
+  WHERE ((results.id_taxa_obs = tips.id_taxa_obs) AND (results.site_id = tips.site_id))
   ORDER BY tips.site_id, results.year, results.taxa_name;
+
+ALTER TABLE indicators.pheno_acoustique OWNER TO postgres;
