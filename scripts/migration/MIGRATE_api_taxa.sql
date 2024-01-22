@@ -55,8 +55,8 @@ The resulting materialized view "api.taxa" will contain the following columns:
 - species: The scientific name of the species for the taxon.
 */
 CREATE MATERIALIZED VIEW api.taxa AS
-    WITH all_ref AS (
-         SELECT obs_lookup.id_taxa_obs,
+ 	WITH all_ref AS (
+        SELECT obs_lookup.id_taxa_obs,
             taxa_ref.scientific_name AS valid_scientific_name,
             taxa_ref.rank,
             taxa_ref.source_name,
@@ -67,12 +67,12 @@ CREATE MATERIALIZED VIEW api.taxa AS
              JOIN taxa_ref_sources USING (source_id)
           WHERE obs_lookup.match_type IS NOT NULL AND obs_lookup.match_type <> 'complex'::text
           ORDER BY obs_lookup.id_taxa_obs, taxa_ref_sources.source_priority
-    ), agg_ref AS (
+        ), agg_ref AS (
          SELECT all_ref.id_taxa_obs,
             json_agg(json_build_object('source_name', all_ref.source_name, 'valid_scientific_name', all_ref.valid_scientific_name, 'rank', all_ref.rank, 'source_taxon_key', all_ref.source_taxon_key)) AS source_references
            FROM all_ref
           GROUP BY all_ref.id_taxa_obs
-    ), best_ref AS (
+        ), best_ref AS (
          SELECT DISTINCT ON (all_ref.id_taxa_obs) all_ref.id_taxa_obs,
             all_ref.valid_scientific_name,
             all_ref.rank,
@@ -82,14 +82,14 @@ CREATE MATERIALIZED VIEW api.taxa AS
              JOIN api.taxa_ref_sources USING (source_name)
 			 JOIN taxa_rank_order on all_ref.rank = taxa_rank_order.rank_name
           ORDER BY all_ref.id_taxa_obs, api.taxa_ref_sources.source_priority
-    ), obs_group AS (
+        ), obs_group AS (
          SELECT DISTINCT ON (group_lookup.id_taxa_obs) group_lookup.id_taxa_obs,
             COALESCE(taxa_groups.vernacular_en, 'others'::text) AS group_en,
             COALESCE(taxa_groups.vernacular_fr, 'autres'::text) AS group_fr
            FROM taxa_obs_group_lookup group_lookup
              LEFT JOIN taxa_groups ON group_lookup.id_group = taxa_groups.id
           WHERE taxa_groups.level = 1
-    ), vernacular_all AS (
+        ), vernacular_all AS (
          SELECT v_lookup.id_taxa_obs,
             taxa_vernacular.id,
             taxa_vernacular.source_name,
@@ -100,57 +100,59 @@ CREATE MATERIALIZED VIEW api.taxa AS
             taxa_vernacular.created_at,
             taxa_vernacular.modified_at,
             taxa_vernacular.modified_by,
-            COALESCE(taxa_vernacular_sources.source_priority, 9999) AS "coalesce",
+            COALESCE(taxa_vernacular_sources.source_priority, 9999) AS "source_priority",
             v_lookup.match_type,
             COALESCE(v_lookup.rank_order, 9999) AS rank_order
            FROM taxa_obs_vernacular_lookup v_lookup
              LEFT JOIN taxa_vernacular ON v_lookup.id_taxa_vernacular = taxa_vernacular.id
              LEFT JOIN taxa_vernacular_sources USING (source_name)
           WHERE v_lookup.match_type IS NOT NULL AND v_lookup.match_type <> 'complex'::text
-        ORDER BY v_lookup.id_taxa_obs, v_lookup.match_type, (COALESCE(v_lookup.rank_order, 9999)) DESC, taxa_vernacular_sources.source_priority
-    ), best_vernacular AS (
-        SELECT ver_en.id_taxa_obs,
+          ORDER BY v_lookup.id_taxa_obs, v_lookup.match_type, (COALESCE(v_lookup.rank_order, 9999)) DESC, taxa_vernacular_sources.source_priority
+        ), best_vernacular AS (
+         SELECT ver_en.id_taxa_obs,
             ver_en.name AS vernacular_en,
             ver_fr.name AS vernacular_fr
-        FROM ( SELECT DISTINCT ON (vernacular_all.id_taxa_obs) vernacular_all.id_taxa_obs,
-            vernacular_all.name
-            FROM vernacular_all
-            WHERE vernacular_all.language = 'eng'::text) ver_en
-        LEFT JOIN ( SELECT DISTINCT ON (vernacular_all.id_taxa_obs) vernacular_all.id_taxa_obs,
-            vernacular_all.name
-            FROM vernacular_all
-            WHERE vernacular_all.language = 'fra'::text) ver_fr ON ver_en.id_taxa_obs = ver_fr.id_taxa_obs
-    ), vernacular_group AS (
-        SELECT vernacular_all.id_taxa_obs,
+           FROM ( SELECT DISTINCT ON (vernacular_all.id_taxa_obs) vernacular_all.id_taxa_obs,
+                    vernacular_all.name
+                   FROM vernacular_all
+                  WHERE vernacular_all.language = 'eng'::text
+                  ORDER BY vernacular_all.id_taxa_obs, vernacular_all.source_priority, vernacular_all.match_type) ver_en
+             LEFT JOIN ( SELECT DISTINCT ON (vernacular_all.id_taxa_obs) vernacular_all.id_taxa_obs,
+                    vernacular_all.name
+                   FROM vernacular_all
+                  WHERE vernacular_all.language = 'fra'::text
+                  ORDER BY vernacular_all.id_taxa_obs, vernacular_all.source_priority, vernacular_all.match_type) ver_fr ON ver_en.id_taxa_obs = ver_fr.id_taxa_obs
+        ), vernacular_group AS (
+         SELECT vernacular_all.id_taxa_obs,
             json_agg(json_build_object('name', vernacular_all.name, 'source', vernacular_all.source_name, 'source_taxon_key', vernacular_all.source_record_id, 'language', vernacular_all.language)) AS vernacular
-        FROM vernacular_all
-        GROUP BY vernacular_all.id_taxa_obs
-    ), ref_all_rank AS (
-        SELECT DISTINCT ON (lu.id_taxa_obs, taxa_ref.rank) lu.id_taxa_obs,
+           FROM vernacular_all
+          GROUP BY vernacular_all.id_taxa_obs
+        ), ref_all_rank AS (
+         SELECT DISTINCT ON (lu.id_taxa_obs, taxa_ref.rank) lu.id_taxa_obs,
             taxa_ref.scientific_name,
             taxa_ref.rank,
 			taxa_rank_order.order,
 			taxa_ref_sources.source_priority
-        FROM taxa_obs taxa_obs_1,
+           FROM taxa_obs taxa_obs_1,
             taxa_ref,
             taxa_obs_ref_lookup lu,
             taxa_ref_sources,
 			best_ref,
 			taxa_rank_order
-        WHERE lu.id_taxa_obs = taxa_obs_1.id AND taxa_ref.id = lu.id_taxa_ref_valid AND taxa_ref.source_name = taxa_ref_sources.source_name AND lu.id_taxa_obs = best_ref.id_taxa_obs AND taxa_ref.rank = taxa_rank_order.rank_name
-        ORDER BY lu.id_taxa_obs, taxa_ref.rank, taxa_ref_sources.source_priority
-    ), ref_rank AS (
-		select ref_all_rank.id_taxa_obs,
-			ref_all_rank.scientific_name,
-			ref_all_rank.rank,
-			ref_all_rank.order,
-			best_ref.source_priority,
-			best_ref.rank_order best_ref_rank
-		from ref_all_rank
-		left join best_ref on best_ref.id_taxa_obs = ref_all_rank.id_taxa_obs
-		where ref_all_rank.order <= best_ref.rank_order
-	), full_taxonomy AS (
-        SELECT kingdom.id_taxa_obs,
+          WHERE lu.id_taxa_obs = taxa_obs_1.id AND taxa_ref.id = lu.id_taxa_ref_valid AND taxa_ref.source_name = taxa_ref_sources.source_name AND lu.id_taxa_obs = best_ref.id_taxa_obs AND taxa_ref.rank = taxa_rank_order.rank_name
+          ORDER BY lu.id_taxa_obs, taxa_ref.rank, taxa_ref_sources.source_priority
+        ), ref_rank AS (
+			select ref_all_rank.id_taxa_obs,
+				ref_all_rank.scientific_name,
+				ref_all_rank.rank,
+				ref_all_rank.order,
+				best_ref.source_priority,
+				best_ref.rank_order best_ref_rank
+			from ref_all_rank
+			left join best_ref on best_ref.id_taxa_obs = ref_all_rank.id_taxa_obs
+			where ref_all_rank.order <= best_ref.rank_order
+		), full_taxonomy AS (
+         SELECT kingdom.id_taxa_obs,
             kingdom.scientific_name AS kingdom,
             phylum.scientific_name AS phylum,
             class.scientific_name AS class,
@@ -186,7 +188,7 @@ CREATE MATERIALIZED VIEW api.taxa AS
                     ref_rank.scientific_name
                    FROM ref_rank
                   WHERE ref_rank.rank = 'phylum'::text) phylum USING (id_taxa_obs)
-    )					
+        )					
  SELECT best_ref.id_taxa_obs,
     taxa_obs.scientific_name AS observed_scientific_name,
     best_ref.valid_scientific_name,
