@@ -123,7 +123,7 @@ CREATE MATERIALIZED VIEW api.taxa AS
             taxa_vernacular.created_at,
             taxa_vernacular.modified_at,
             taxa_vernacular.modified_by,
-            COALESCE(taxa_vernacular_sources.source_priority, 9999) AS "coalesce",
+            COALESCE(taxa_vernacular_sources.source_priority, 9999) AS "source_priority",
             v_lookup.match_type,
             COALESCE(v_lookup.rank_order, 9999) AS rank_order
            FROM taxa_obs_vernacular_lookup v_lookup
@@ -138,11 +138,13 @@ CREATE MATERIALIZED VIEW api.taxa AS
            FROM ( SELECT DISTINCT ON (vernacular_all.id_taxa_obs) vernacular_all.id_taxa_obs,
                     vernacular_all.name
                    FROM vernacular_all
-                  WHERE vernacular_all.language = 'eng'::text) ver_en
+                  WHERE vernacular_all.language = 'eng'::text
+                  ORDER BY vernacular_all.id_taxa_obs, vernacular_all.source_priority, vernacular_all.match_type) ver_en
              LEFT JOIN ( SELECT DISTINCT ON (vernacular_all.id_taxa_obs) vernacular_all.id_taxa_obs,
                     vernacular_all.name
                    FROM vernacular_all
-                  WHERE vernacular_all.language = 'fra'::text) ver_fr ON ver_en.id_taxa_obs = ver_fr.id_taxa_obs
+                  WHERE vernacular_all.language = 'fra'::text
+                  ORDER BY vernacular_all.id_taxa_obs, vernacular_all.source_priority, vernacular_all.match_type) ver_fr ON ver_en.id_taxa_obs = ver_fr.id_taxa_obs
         ), vernacular_group AS (
          SELECT vernacular_all.id_taxa_obs,
             json_agg(json_build_object('name', vernacular_all.name, 'source', vernacular_all.source_name, 'source_taxon_key', vernacular_all.source_record_id, 'language', vernacular_all.language)) AS vernacular
