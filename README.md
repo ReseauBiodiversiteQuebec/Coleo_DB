@@ -8,8 +8,41 @@ Returns a table with the sum of observation values from `obs_species` and `obs_e
 
 All parameters are optionals and can be used in any combination. If no parameter is specified, the function will return the total abundance.
 
+**FUNCTION** `api.taxa_abundance_year`
+
+Returns the same table, expect the abundance is returned for each year of the campaigns. 
+
 **FUNCTION** `api.taxa_richness(group_by_column text, cell_id_filter integer, cell_code_filter text, site_id_filter integer, site_code_filter text, site_type_filter text, campaign_id_filter integer, campaign_type_filter text)`
 
 Returns a table with the number of validated and unique taxa, based on the tip of the branch method, from both `obs_species` and `obs_edna` grouped by the column name specified as parameter and filtered by column values. The column names accepted can be any of : `site_id`, `site_type`, `site_code`, `campaign_id`, `campaign_type`, `cell_id`, `cell_code`.
 
 All parameters are optionals and can be used in any combination. If no parameter is specified, the function will return the total richness.
+
+**FUNCTION** `api.taxa_richness_year`
+
+Returns the same table, expect the richness is returned for each year of the campaigns. 
+
+## Cron jobs
+
+Certain tasks are executed periodically by the server. These tasks are called cron jobs and scripts are defined in the `./cron/` folder. These tasks are:
+
+Scripts must be executed under the `postgres` user.
+
+- `./cron/refresh_taxa.sql`: Refreshes the `taxa_ref` table, the `taxa_vernacular` table, and the `api.taxa` materialized view. This script is executed every Friday at 9:00 PM.
+
+### Editing cron jobs for `postgres` user
+
+First, make sure the `postgres` home directory contains the latest version of the `Coleo_DB` repository located in `/home/postgres/Coleo_DB` . If not, run the following command:
+
+```bash
+sudo -u postgres git -C /home/postgres/Coleo_DB pull
+```
+
+To edit the cron jobs for the `postgres` user, run the following command:
+
+```bash
+sudo crontab -u postgres -e
+```
+
+This will open the crontab file for the `postgres` user. Copy the lines from the `./cron/crontab` file and paste them at the end of the file. Save the file and exit.
+

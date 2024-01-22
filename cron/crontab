@@ -1,0 +1,2 @@
+# Add the following line to the crontab file for the postgres user
+0 21 * * 5 /bin/bash  psql -d coleo -f /home/postgres/Coleo_DB/cron/refresh_taxa.sql

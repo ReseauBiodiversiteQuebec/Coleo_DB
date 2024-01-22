@@ -12,11 +12,34 @@
         id serial PRIMARY KEY,
         scientific_name text NOT NULL,
         created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        parent_taxa_name text,
         UNIQUE (scientific_name)
     );
 
     CREATE INDEX IF NOT EXISTS taxa_obs_scientific_name_idx
     ON public.taxa_obs (scientific_name);
+
+
+-- access
+ALTER TABLE IF EXISTS public.taxa_obs
+    OWNER to postgres;
+
+REVOKE ALL ON TABLE public.taxa_obs FROM coleo_test_user;
+REVOKE ALL ON TABLE public.taxa_obs FROM read_only_all;
+REVOKE ALL ON TABLE public.taxa_obs FROM read_only_public;
+REVOKE ALL ON TABLE public.taxa_obs FROM read_write_all;
+
+GRANT SELECT ON TABLE public.taxa_obs TO coleo_test_user;
+
+GRANT ALL ON TABLE public.taxa_obs TO glaroc;
+
+GRANT ALL ON TABLE public.taxa_obs TO postgres;
+
+GRANT SELECT ON TABLE public.taxa_obs TO read_only_all;
+
+GRANT SELECT ON TABLE public.taxa_obs TO read_only_public;
+
+GRANT INSERT, TRUNCATE, REFERENCES, TRIGGER, UPDATE, SELECT ON TABLE public.taxa_obs TO read_write_all;
 
 
 -------------------------------------------------------------------------------
@@ -37,11 +60,22 @@
     CREATE INDEX IF NOT EXISTS obs_species_id_taxa_obs_idx
         ON public.obs_species (id_taxa_obs);
 
+    -- ADD FOREIGN KEY CONSTRAINT
+    ALTER TABLE public.obs_species
+        DROP CONSTRAINT IF EXISTS obs_species_id_taxa_obs_fkey;
+
+    ALTER TABLE public.obs_species
+        ADD CONSTRAINT obs_species_id_taxa_obs_fkey
+        FOREIGN KEY (id_taxa_obs)
+        REFERENCES public.taxa_obs (id)
+        ON UPDATE CASCADE
+        ON DELETE NO ACTION;
+
 -------------------------------------------------------------------------------
 -- * Migrate `taxa_name` values to `taxa_obs`
 -------------------------------------------------------------------------------
-INSERT INTO taxa_obs (scientific_name)
-    SELECT distinct taxa_name
+INSERT INTO taxa_obs (scientific_name, parent_taxa_name)
+    SELECT distinct (taxa_name, parent_taxa_name)
     FROM obs_species
     ON CONFLICT DO NOTHING;
 
@@ -53,48 +87,46 @@ UPDATE obs_species
 -- TODO: TRIGGER ON INJECT (obs_species)
 
 -------------------------------------------------------------------------------
--- CREATE FUNCTIONS AND TRIGGER to update taxa_ref on taxa_obs on insert
+-- CREATE FUNCTIONS AND TRIGGER to update taxa_obs on obs_species insert
 -------------------------------------------------------------------------------
-    -- DROP the ref_species fk on obs_species
-    -- ALTER TABLE public.obs_species DROP CONSTRAINT obs_species_taxa_name_fkey;
+-- CREATE the trigger for taxa_ref insertion:
+CREATE OR REPLACE FUNCTION trigger_insert_taxa_obs_from_obs_species()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO taxa_obs (scientific_name, parent_taxa_name)
+        VALUES (NEW.taxa_name, NEW.parent_taxa_name)
+        ON CONFLICT DO NOTHING;
+    NEW.id_taxa_obs := (
+        SELECT id
+        FROM taxa_obs
+        WHERE scientific_name = NEW.taxa_name
+            and parent_taxa_name = NEW.parent_taxa_name
+        );
+    RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
 
-    -- CREATE the trigger for taxa_ref insertion:
-    CREATE OR REPLACE FUNCTION trigger_insert_taxa_obs_from_obs_species()
-    RETURNS TRIGGER AS $$
-    BEGIN
-        INSERT INTO taxa_obs (scientific_name)
-            VALUES (NEW.taxa_name)
-            ON CONFLICT DO NOTHING;
-        NEW.id_taxa_obs := (
-            SELECT id
-            FROM taxa_obs
-            WHERE scientific_name = NEW.taxa_name
-            );
-        RETURN NEW;
-    END;
-    $$ LANGUAGE 'plpgsql';
+DROP TRIGGER IF EXISTS insert_taxa_obs ON obs_species;
+CREATE TRIGGER insert_taxa_obs
+    BEFORE INSERT ON public.obs_species
+    FOR EACH ROW
+    EXECUTE PROCEDURE trigger_insert_taxa_obs_from_obs_species();
 
-    DROP TRIGGER IF EXISTS insert_taxa_obs ON obs_species;
-    CREATE TRIGGER insert_taxa_obs
-        BEFORE INSERT ON public.obs_species
-        FOR EACH ROW
-        EXECUTE PROCEDURE trigger_insert_taxa_obs_from_obs_species();
+-- TEST and ROLLBACK
+BEGIN;
+INSERT INTO obs_species (taxa_name, variable, value, observation_id, parent_taxa_name)
+VALUES ('Victor Cameron', 'abondance', 1, 206212, 'Vincent Beauregard');
+SELECT * FROM taxa_obs WHERE scientific_name = 'Victor Cameron';
+SELECT * FROM obs_species WHERE taxa_name = 'Victor Cameron';
+ROLLBACK;
 
-    -- TEST and ROLLBACK
-    BEGIN;
-    INSERT INTO obs_species (taxa_name, variable, value, observation_id)
-    VALUES ('Vincent Beauregard', 'abondance', 1, 44);
-    SELECT * FROM taxa_obs WHERE scientific_name = 'Vincent Beauregard';
-    SELECT * FROM obs_species WHERE taxa_name = 'Vincent Beauregard';
-    ROLLBACK;
-
-    -- TEST for existing taxa
-    BEGIN;
-    INSERT INTO obs_species (taxa_name, variable, value, observation_id)
-    VALUES ('Acer saccharum', 'recouvrement', 0, 9);
-    SELECT * FROM taxa_obs WHERE scientific_name = 'Acer saccharum';
-    SELECT * FROM obs_species WHERE taxa_name = 'Acer saccharum';
-    ROLLBACK;
+-- TEST for existing taxa
+BEGIN;
+INSERT INTO obs_species (taxa_name, variable, value, observation_id, parent_taxa_name)
+VALUES ('Acer saccharum', 'recouvrement', 0, 206212, 'Plantae');
+SELECT * FROM taxa_obs WHERE scientific_name = 'Acer saccharum';
+SELECT * FROM obs_species WHERE taxa_name = 'Acer saccharum';
+ROLLBACK;
 
 -------------------------------------------------------------------------------
 -- ALTER public.obs_edna ADD COLUMN id_taxa_obs
@@ -114,6 +146,51 @@ UPDATE obs_species
     CREATE INDEX IF NOT EXISTS obs_edna_id_taxa_obs_idx
         ON public.obs_edna (id_taxa_obs);
 
+    -- ADD FOREIGN KEY CONSTRAINT
+    ALTER TABLE public.obs_edna
+        DROP CONSTRAINT IF EXISTS obs_edna_id_taxa_obs_fkey;
+
+    ALTER TABLE public.obs_edna
+        ADD CONSTRAINT obs_edna_id_taxa_obs_fkey
+        FOREIGN KEY (id_taxa_obs)
+        REFERENCES public.taxa_obs (id)
+        ON UPDATE CASCADE
+        ON DELETE NO ACTION;
+
+
+-------------------------------------------------------------------------------
+-- TEST CASE : Taxa_obs delete if only referenced by obs_edna
+-------------------------------------------------------------------------------
+
+BEGIN;
+    -- INSERT INTO taxa_obs (scientific_name)
+    --     VALUES ('Vincent Beauregard');
+
+    WITH taxa_obs AS (
+        SELECT id
+        FROM taxa_obs
+        WHERE scientific_name = 'Vincent Beauregard'
+        )
+    INSERT INTO obs_edna (taxa_name, observation_id, sequence_count, type_edna, notes, sequence_count_corrected, id_taxa_obs)
+        VALUES ('Vincent Beauregard', 162045, 11429, 'improbable', '', 11429, (SELECT id FROM taxa_obs));
+
+    -- Print number of taxa_obs
+    SELECT 'Number of taxa_obs: ', count(*) FROM taxa_obs
+    WHERE scientific_name = 'Vincent Beauregard';
+
+    DELETE FROM obs_edna WHERE taxa_name = 'Vincent Beauregard';
+
+    -- Print number of obs_edna
+    SELECT 'Number of obs_edna: ', count(*) FROM obs_edna
+    WHERE taxa_name = 'Vincent Beauregard';
+
+    -- Print number of taxa_obs
+    SELECT 'Number of taxa_obs: ', count(*) FROM taxa_obs
+    WHERE scientific_name = 'Vincent Beauregard';
+ROLLBACK;
+
+-- Assert
+
 -------------------------------------------------------------------------------
 -- CREATE FUNCTIONS AND TRIGGER to update taxa_obs on insert on obs_edna
 -------------------------------------------------------------------------------
@@ -125,13 +202,14 @@ UPDATE obs_species
     CREATE OR REPLACE FUNCTION trigger_insert_taxa_obs_from_obs_edna()
     RETURNS TRIGGER AS $$
     BEGIN
-        INSERT INTO taxa_obs (scientific_name)
-            VALUES (NEW.taxa_name)
+        INSERT INTO taxa_obs (scientific_name, parent_taxa_name)
+            VALUES (NEW.taxa_name, NEW.parent_taxa_name)
             ON CONFLICT DO NOTHING;
         NEW.id_taxa_obs := (
             SELECT id
             FROM taxa_obs
             WHERE scientific_name = NEW.taxa_name
+                and parent_taxa_name = NEW.parent_taxa_name
             );
         RETURN NEW;
     END;
@@ -145,10 +223,10 @@ UPDATE obs_species
 
     -- TEST and ROLLBACK
     BEGIN;
-    INSERT INTO obs_edna (observation_id, landmark_id, taxa_name, sequence_count, type_edna, notes)
-    VALUES (160085, 14790, 'Vincent Beauregard', 1, 'improbable', NULL);
-    SELECT * FROM taxa_obs WHERE scientific_name = 'Vincent Beauregard';
-    SELECT * FROM obs_edna WHERE taxa_name = 'Vincent Beauregard';
+    INSERT INTO obs_edna (observation_id, taxa_name, sequence_count, type_edna, notes, parent_taxa_name)
+    VALUES (160085, 'Victor Cameron', 1, 'improbable', NULL, 'Vincent Beauregard');
+    SELECT * FROM taxa_obs WHERE scientific_name = 'Victor Cameron';
+    SELECT * FROM obs_edna WHERE taxa_name = 'Victor Cameron';
     ROLLBACK;
 
     -- TEST for existing taxa
