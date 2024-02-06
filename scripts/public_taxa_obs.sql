@@ -12,7 +12,7 @@
         id serial PRIMARY KEY,
         scientific_name text NOT NULL,
         created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        parent_taxa_name text,
+        parent_taxa_name text COLLATE pg_catalog."default" DEFAULT ''::text,
         UNIQUE (scientific_name)
     );
 

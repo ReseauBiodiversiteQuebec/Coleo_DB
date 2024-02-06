@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.obs_species
     updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     id_taxa_obs integer,
     value_string character varying(100) COLLATE pg_catalog."default",
-    parent_taxa_name text COLLATE pg_catalog."default",
+    parent_taxa_name text COLLATE pg_catalog."default" DEFAULT ''::text,
     CONSTRAINT obs_species_pkey PRIMARY KEY (id),
     CONSTRAINT obs_species_id_taxa_obs_fkey FOREIGN KEY (id_taxa_obs)
         REFERENCES public.taxa_obs (id) MATCH SIMPLE
