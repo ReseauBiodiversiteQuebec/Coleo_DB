@@ -78,3 +78,9 @@ CREATE TRIGGER insert_taxa_obs
     ON public.obs_edna
     FOR EACH ROW
     EXECUTE FUNCTION public.trigger_insert_taxa_obs_from_obs_edna();
+
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO coleo_test_user;
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO glaroc;
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO postgres;
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO read_write_all;
