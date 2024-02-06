@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.obs_edna
     updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     sequence_count_corrected double precision,
     id_taxa_obs integer,
-    parent_taxa_name text COLLATE pg_catalog."default",
+    parent_taxa_name text COLLATE pg_catalog."default" DEFAULT ''::text,
     CONSTRAINT obs_edna_pkey PRIMARY KEY (id),
     CONSTRAINT obs_edna_id_taxa_obs_fkey FOREIGN KEY (id_taxa_obs)
         REFERENCES public.taxa_obs (id) MATCH SIMPLE
@@ -78,3 +78,9 @@ CREATE TRIGGER insert_taxa_obs
     ON public.obs_edna
     FOR EACH ROW
     EXECUTE FUNCTION public.trigger_insert_taxa_obs_from_obs_edna();
+
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO coleo_test_user;
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO glaroc;
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO postgres;
+GRANT EXECUTE ON FUNCTION public.trigger_insert_taxa_obs_from_obs_edna() TO read_write_all;
