@@ -1,0 +1,1 @@
+SELECT refresh_coleo_test();
