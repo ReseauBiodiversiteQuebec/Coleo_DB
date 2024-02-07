@@ -74,11 +74,11 @@ GRANT SELECT ON TABLE api.gabarit_papilionides_long TO read_write_all;
 -------------------------------------------------------------------------------
 
 -- CREATE VIEW FOR PAPILIONIDÉS CAMPAIGN
--- View: api.gabarit_papilionies_short
+-- View: api.gabarit_papilionides_short
 
--- DROP VIEW api.gabarit_papilionies_short;
+-- DROP VIEW api.gabarit_papilionides_short;
 
-CREATE OR REPLACE VIEW api.gabarit_papilionies_short AS (
+CREATE OR REPLACE VIEW api.gabarit_papilionides_short AS (
     select COALESCE(cl.name, '') || CASE WHEN s.site_name IS NOT NULL THEN ' - ' || s.site_name ELSE '' END as "Nom du site",
         s.type as "Type de site",
         s.site_code as "Code du site",
@@ -116,9 +116,9 @@ CREATE OR REPLACE VIEW api.gabarit_papilionies_short AS (
         o.time_obs
 );
 
-GRANT SELECT ON TABLE api.gabarit_acoustique_anoures_short TO coleo_test_user;
-GRANT ALL ON TABLE api.gabarit_acoustique_anoures_short TO glaroc;
-GRANT ALL ON TABLE api.gabarit_acoustique_anoures_short TO postgres;
-GRANT SELECT ON TABLE api.gabarit_acoustique_anoures_short TO read_only_all;
-GRANT SELECT ON TABLE api.gabarit_acoustique_anoures_short TO read_only_public;
-GRANT SELECT ON TABLE api.gabarit_acoustique_anoures_short TO read_write_all;
+GRANT SELECT ON TABLE api.gabarit_papilionides_short TO coleo_test_user;
+GRANT ALL ON TABLE api.gabarit_papilionides_short TO glaroc;
+GRANT ALL ON TABLE api.gabarit_papilionides_short TO postgres;
+GRANT SELECT ON TABLE api.gabarit_papilionides_short TO read_only_all;
+GRANT SELECT ON TABLE api.gabarit_papilionides_short TO read_only_public;
+GRANT SELECT ON TABLE api.gabarit_papilionides_short TO read_write_all;
