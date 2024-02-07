@@ -74,11 +74,11 @@ GRANT SELECT ON TABLE api.gabarit_papilionides_long TO read_write_all;
 -------------------------------------------------------------------------------
 
 -- CREATE VIEW FOR PAPILIONIDÉS CAMPAIGN
--- View: api.gabarit_papilionies_short
+-- View: api.gabarit_papilionides_short
 
--- DROP VIEW api.gabarit_papilionies_short;
+-- DROP VIEW api.gabarit_papilionides_short;
 
-CREATE OR REPLACE VIEW api.gabarit_papilionies_short AS (
+CREATE OR REPLACE VIEW api.gabarit_papilionides_short AS (
     select COALESCE(cl.name, '') || CASE WHEN s.site_name IS NOT NULL THEN ' - ' || s.site_name ELSE '' END as "Nom du site",
         s.type as "Type de site",
         s.site_code as "Code du site",
