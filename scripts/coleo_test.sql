@@ -31,7 +31,6 @@ INSERT INTO coleo_test.sites (cell_id, site_code, type, opened_at, geom) VALUES 
 
 -- GRANT PRIVILEGES
 -- Create coleo_test_user user for testing
-CREATE USER coleo_test_user WITH PASSWORD 'b4VmDTuun8yHTK';
 GRANT ALL PRIVILEGES ON SCHEMA coleo_test TO coleo_test_user;
 GRANT ALL PRIVILEGES ON SCHEMA coleo_test TO read_write_all;
 GRANT ALL PRIVILEGES ON SCHEMA coleo_test TO admins;
@@ -84,7 +83,6 @@ BEGIN
     
     -- GRANT PRIVILEGES
     -- Create coleo_test_user user for testing
-    CREATE USER coleo_test_user WITH PASSWORD 'b4VmDTuun8yHTK';
     GRANT ALL PRIVILEGES ON SCHEMA coleo_test TO coleo_test_user;
     GRANT ALL PRIVILEGES ON SCHEMA coleo_test TO read_write_all;
     GRANT ALL PRIVILEGES ON SCHEMA coleo_test TO admins;
