@@ -69,7 +69,7 @@ CREATE OR REPLACE VIEW api.gabarit_benthos_long AS (
             (extra #>> '{}')::jsonb -> 'temperature_eau' ->> 'type' as environnements_extra_type_5,
             (extra #>> '{}')::jsonb -> 'temperature_eau' ->> 'description' as environnements_extra_description_5
         from environments
-        where environments.id = c.id
+        where environments.campaign_id = c.id
     ) as extra on true
     where c.type = 'benthos'
     order by (c.opened_at, s.site_code, c.technicians, c.notes)
