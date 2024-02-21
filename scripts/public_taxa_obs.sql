@@ -240,3 +240,42 @@ ROLLBACK;
     WHERE lu.id_taxa_obs = taxa_obs.id
     AND scientific_name = 'Sander vitreus';
     ROLLBACK;
+
+
+-------------------------------------------------------------------------------
+-- CREATE FUNCTIONS to clean taxa_obs of unreferenced taxa
+-------------------------------------------------------------------------------
+-- CREATE the function to clean taxa_obs of unreferenced taxa
+CREATE OR REPLACE FUNCTION clean_taxa_obs()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM taxa_obs
+    WHERE id NOT IN (
+        SELECT id_taxa_obs
+        FROM obs_edna
+        UNION
+        SELECT id_taxa_obs
+        FROM obs_species
+    );
+END;
+$$ LANGUAGE 'plpgsql';
+
+-- TEST and ROLLBACK
+BEGIN;
+INSERT INTO obs_edna (observation_id, taxa_name, sequence_count, type_edna, notes, parent_taxa_name)
+    VALUES (634117, 'Victor Cameron', 1, 'improbable', NULL, 'Vincent Beauregard');
+SELECT * FROM taxa_obs WHERE scientific_name = 'Victor Cameron';
+SELECT * FROM obs_edna WHERE taxa_name = 'Victor Cameron';
+delete from obs_edna where taxa_name = 'Victor Cameron';
+SELECT * FROM taxa_obs WHERE id NOT IN (
+        SELECT id_taxa_obs
+        FROM obs_edna
+        UNION
+        SELECT id_taxa_obs
+        FROM obs_species
+    ); 
+SELECT clean_taxa_obs();
+SELECT * FROM taxa_obs WHERE scientific_name = 'Victor Cameron';
+SELECT * FROM obs_edna WHERE taxa_name = 'Victor Cameron';
+SELECT * FROM obs_species WHERE taxa_name = 'Victor Cameron';
+ROLLBACK;
