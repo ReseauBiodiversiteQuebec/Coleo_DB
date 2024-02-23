@@ -10,13 +10,13 @@ CREATE SCHEMA IF NOT EXISTS indicators;
 
 -- DROP VIEW indicators.pheno_acoustique;
 
-CREATE VIEW indicators.pheno_acoustique AS
+CREATE OR REPLACE VIEW indicators.pheno_acoustique AS
  WITH results AS (
          SELECT s.id AS site_id,
             c.type AS campaign_type,
             taxa.valid_scientific_name AS valid_name,
-            taxa.vernacular_fr AS taxa_name,
-            taxa.vernacular_en AS taxa_name_en,
+            CASE WHEN taxa.vernacular_fr IS NULL THEN taxa.valid_scientific_name ELSE taxa.vernacular_fr END as "taxa_name",
+            CASE WHEN taxa.vernacular_en IS NULL THEN taxa.valid_scientific_name ELSE taxa.vernacular_en END as "taxa_name_en",
             date_part('year'::text, o.date_obs) AS year,
             o.date_obs,
             os.id_taxa_obs,
