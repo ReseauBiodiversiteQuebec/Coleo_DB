@@ -95,7 +95,8 @@ CREATE OR REPLACE VIEW api.gabarit_acoustique_orthopteres_short AS (
     left join observations o on o.campaign_id = c.id
     left join obs_species os on os.observation_id = o.id
     left join api.taxa t on t.id_taxa_obs= os.id_taxa_obs
-    left JOIN efforts e ON c.id = e.campaign_id
+    left join observations_efforts_lookup oel ON oel.observation_id=o.id
+    left join efforts e on e.id = oel.effort_id
     where c.type = 'acoustique_orthoptères'
     order by 
         -- t.observed_scientific_name NULLS LAST,
